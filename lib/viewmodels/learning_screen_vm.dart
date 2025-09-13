@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillsbridge/data/sample.dart';
 import 'package:skillsbridge/models/course_model.dart';
 
 class LearningScreenViewModel extends ChangeNotifier {
@@ -19,15 +20,9 @@ class LearningScreenViewModel extends ChangeNotifier {
   bool get isEnrolled => _isEnrolled;
   List<bool> get expandedSections => _expandedSections;
 
-  // Categories and filters
-  // final List<String> categories = [
-  //   'All',
-  //   'Technology',
-  //   'Business',
-  //   'Design',
-  //   'Marketing',
-  //   'Languages',
-  // ];
+  Map<String, dynamic> get apiFeaturedCourse => SampleData.featuredCourse;
+  List<Map<String, dynamic>> get apiPopularCourses => SampleData.popularCourses;
+  List<String> get apiCategories => SampleData.categories;
 
   final List<String> categories = [
     'All',

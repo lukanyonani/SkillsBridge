@@ -29,6 +29,7 @@ class _LearningHubScreenState extends State<LearningHubScreen> {
             body: SafeArea(
               child: Column(
                 children: [
+                  _buildTopHeader(),
                   _buildHeader(viewModel),
                   _buildCategoryTabs(viewModel),
                   Expanded(
@@ -52,6 +53,36 @@ class _LearningHubScreenState extends State<LearningHubScreen> {
     );
   }
 
+  Widget _buildTopHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Flexible(
+            child: Text(
+              'Learning Hub',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader(LearningScreenViewModel viewModel) {
     return Container(
       color: Colors.white,
@@ -59,28 +90,6 @@ class _LearningHubScreenState extends State<LearningHubScreen> {
       child: Column(
         children: [
           // Header top
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Learning Hub',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111827),
-                ),
-              ),
-              Row(
-                children: [
-                  _buildIconButton('🔔'),
-                  const SizedBox(width: 12),
-                  _buildIconButton('⚙️'),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
           // Search bar
           Container(
             decoration: BoxDecoration(
