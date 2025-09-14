@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:skillsbridge/constants/theme.dart';
-import 'package:skillsbridge/views/bursary/bursary_screen.dart';
+import 'package:skillsbridge/views/bursary/btest.dart';
+//import 'package:skillsbridge/views/bursary/bursary_screen.dart';
 import 'package:skillsbridge/views/counsellor/counsellor_screen.dart';
 import 'package:skillsbridge/views/home/home_screen.dart';
 import 'package:skillsbridge/views/jobs/jobs_screen.dart';
-import 'package:skillsbridge/views/learning/learning_screen.dart';
+import 'package:skillsbridge/views/learning/ltest.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -24,10 +25,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.initState();
     _screens = [
       HomeScreen(),
-      LearningHubScreen(), // Your existing learning screen
+      LearningTesterHubScreen(), // Your existing learning screen
       AICouncelorScreen(), // Your existing AI counselor screen
       JobPortalScreen(),
-      BursaryFinderScreen(), // Your existing bursary screen
+      BursaryFinderTestScreen(), // Your existing bursary screen
     ];
   }
 

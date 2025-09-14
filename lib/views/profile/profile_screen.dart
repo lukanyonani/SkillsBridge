@@ -604,7 +604,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           SizedBox(height: 16),
           Column(
             children: [
-              ...documents.map((doc) => _buildDocumentCard(doc)).toList(),
+              ...documents.map((doc) => _buildDocumentCard(doc)),
               _buildUploadDocumentCard(),
             ],
           ),

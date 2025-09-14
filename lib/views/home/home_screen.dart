@@ -1,59 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/constants/theme.dart';
-import 'package:skillsbridge/viewmodels/home_screen_vm.dart';
+import 'package:skillsbridge/models/course_models.dart';
+import 'package:skillsbridge/viewmodels/bursary_screen_vm.dart';
+import 'package:skillsbridge/viewmodels/home_screen_vm.dart'; // Import the home provider
+import 'package:skillsbridge/viewmodels/jobs_screen_vm.dart'; // Import the jobs provider
+import 'package:skillsbridge/viewmodels/learning_screen_vm.dart';
 import 'package:skillsbridge/views/profile/profile_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  late HomeScreenViewModel _viewModel;
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late JobsScreenViewModel _jobsViewModel;
 
   @override
   void initState() {
     super.initState();
-    _viewModel = HomeScreenViewModel();
-    _viewModel.initialize();
-    _viewModel.addListener(_onViewModelChanged);
-  }
-
-  @override
-  void dispose() {
-    _viewModel.removeListener(_onViewModelChanged);
-    _viewModel.dispose();
-    super.dispose();
-  }
-
-  void _onViewModelChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    _jobsViewModel = JobsScreenViewModel();
+    // Initialize the home screen notifier when the screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(homeScreenProvider.notifier).initialize();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final homeState = ref.watch(homeScreenProvider);
+    final homeNotifier = ref.read(homeScreenProvider.notifier);
+
+    final viewModel = ref.watch(learningHubViewModelProvider);
+
+    if (viewModel.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (viewModel.errorMessage != null) {
+      return Scaffold(body: Center(child: Text(viewModel.errorMessage!)));
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceWhite,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildStatsCards(),
-            _buildContinueLearning(),
-            _buildRecommendedJobs(),
-            _buildUpcomingDeadlines(),
-            const SizedBox(height: 80),
-          ],
+      body: RefreshIndicator(
+        onRefresh: homeNotifier.refreshAllData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildHeader(homeState, homeNotifier),
+              _buildStatsCards(homeState, homeNotifier),
+              const SizedBox(height: 1),
+              _buildContinueLearning(homeState, homeNotifier),
+              _buildPopularCourses(viewModel),
+              const SizedBox(height: 10),
+              _buildRecommendedJobs(homeState, homeNotifier),
+              _buildUpcomingDeadlines(homeState, homeNotifier),
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(
+    HomeScreenState homeState,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -75,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _viewModel.greeting,
+                      homeState.greeting,
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
@@ -85,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 1,
                     ),
                     Text(
-                      '${_viewModel.userName}! 👋',
+                      '${homeState.userName}! 👋',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
@@ -110,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () {
-                  // Navigate to another screen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -167,12 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatsCards() {
+  Widget _buildStatsCards(
+    HomeScreenState homeState,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Calculate responsive aspect ratio based on screen width
           return GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -182,35 +200,35 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildStatCard(
                 icon: '📚',
-                value: _viewModel.userStats['skillsAssessed'].toString(),
+                value: homeState.userStats['coursesAvailable'].toString(),
                 label: 'Courses Available',
                 bgColor: const Color(0xFFDBEAFE),
                 iconColor: const Color(0xFF2563EB),
-                onTap: () => _viewModel.onStatCardTapped('skillsAssessed'),
+                onTap: () => homeNotifier.onStatCardTapped('skillsAssessed'),
               ),
               _buildStatCard(
                 icon: '💼',
-                value: _viewModel.userStats['jobMatches'].toString(),
-                label: 'Jobs',
+                value: homeState.userStats['jobsAvailable'].toString(),
+                label: 'Jobs Available',
                 bgColor: const Color(0xFFFEF3C7),
                 iconColor: const Color(0xFFF59E0B),
-                onTap: () => _viewModel.onStatCardTapped('jobMatches'),
+                onTap: () => homeNotifier.onStatCardTapped('jobMatches'),
               ),
               _buildStatCard(
                 icon: '💡',
-                value: _viewModel.userStats['activeCourses'].toString(),
+                value: homeState.userStats['bursariesAvailable'].toString(),
                 label: 'Bursaries Available',
                 bgColor: const Color(0xFFD1FAE5),
                 iconColor: const Color(0xFF10B981),
-                onTap: () => _viewModel.onStatCardTapped('activeCourses'),
+                onTap: () => homeNotifier.onStatCardTapped('activeCourses'),
               ),
               _buildStatCard(
                 icon: '📝',
-                value: _viewModel.userStats['applications'].toString(),
+                value: homeState.userStats['applications'].toString(),
                 label: 'Achievements',
                 bgColor: const Color(0xFFFEE2E2),
                 iconColor: const Color(0xFFEF4444),
-                onTap: () => _viewModel.onStatCardTapped('applications'),
+                onTap: () => homeNotifier.onStatCardTapped('applications'),
               ),
             ],
           );
@@ -285,15 +303,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildContinueLearning() {
+  Widget _buildContinueLearning(
+    HomeScreenState homeState,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Continue Learning',
                 style: TextStyle(
                   fontSize: 18,
@@ -305,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: _viewModel.onContinueCourseTapped,
+            onTap: homeNotifier.onContinueCourseTapped,
             child: Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -330,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Center(
                           child: Text(
-                            _viewModel.currentCourse['icon'],
+                            homeState.currentCourse['icon'],
                             style: const TextStyle(fontSize: 24),
                           ),
                         ),
@@ -341,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _viewModel.currentCourse['title'],
+                              homeState.currentCourse['title'],
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -352,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${_viewModel.currentCourse['module']} • ${_viewModel.currentCourse['timeLeft']}',
+                              '${homeState.currentCourse['module']} • ${homeState.currentCourse['timeLeft']}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: const Color(0xFF4B5563).withOpacity(0.8),
@@ -369,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: _viewModel.currentCourse['progress'],
+                      value: homeState.currentCourse['progress'],
                       minHeight: 8,
                       backgroundColor: Colors.white,
                       valueColor: const AlwaysStoppedAnimation<Color>(
@@ -382,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${_viewModel.getProgressPercentage()} Complete',
+                        '${homeState.getProgressPercentage()} Complete',
                         style: TextStyle(
                           fontSize: 12,
                           color: const Color(0xFF4B5563).withOpacity(0.8),
@@ -407,7 +428,131 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildRecommendedJobs() {
+  Widget _buildPopularCourses(LearningHubViewModel viewModel) {
+    final courses = viewModel.popularCourses;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Popular Courses',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'See all →',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: const Color(0xFF2563EB),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 235,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: courses.length,
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: _buildCourseCard(courses[index], viewModel),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourseCard(Course course, LearningHubViewModel viewModel) {
+    return GestureDetector(
+      //onTap: () => _navigateToCourseDetail(viewModel),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFDBEAFE), Color(0xFF3B82F6)],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: const Center(
+                child: Text('📚', style: TextStyle(fontSize: 48)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'SkillsBridge',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                  const SizedBox(height: 8),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text('⭐', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Text('4.5', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      Text(
+                        'Free',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendedJobs(
+    HomeScreenState homeState,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return Container(
       padding: const EdgeInsets.only(left: 20),
       child: Column(
@@ -427,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => _viewModel.onSeeAllTapped('jobs'),
+                  onPressed: () => homeNotifier.onSeeAllTapped('jobs'),
                   child: const Text(
                     'View all →',
                     style: TextStyle(
@@ -442,15 +587,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 210, // Increased height to prevent overflow
+            height: 210,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.only(right: 20),
-              itemCount: _viewModel.recommendedJobs.length,
+              itemCount: homeState.recommendedJobs.length,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                final job = _viewModel.recommendedJobs[index];
-                return _buildJobCard(job);
+                final job = homeState.recommendedJobs[index];
+                return _buildJobCard(job, homeNotifier);
               },
             ),
           ),
@@ -459,9 +604,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildJobCard(Map<String, dynamic> job) {
+  Widget _buildJobCard(
+    Map<String, dynamic> job,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return GestureDetector(
-      onTap: () => _viewModel.onJobCardTapped(job),
+      onTap: () => homeNotifier.onJobCardTapped(job),
       child: Container(
         width: 280,
         height: 280,
@@ -574,7 +722,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildUpcomingDeadlines() {
+  Widget _buildUpcomingDeadlines(
+    HomeScreenState homeState,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -591,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => _viewModel.onSeeAllTapped('deadlines'),
+                onPressed: () => homeNotifier.onSeeAllTapped('deadlines'),
                 child: const Text(
                   'View all →',
                   style: TextStyle(
@@ -605,10 +756,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           Column(
-            children: _viewModel.upcomingDeadlines.map((deadline) {
+            children: homeState.upcomingDeadlines.map((deadline) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _buildBursaryCard(deadline),
+                child: _buildBursaryCard(deadline, homeNotifier),
               );
             }).toList(),
           ),
@@ -617,9 +768,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBursaryCard(Map<String, dynamic> bursary) {
+  Widget _buildBursaryCard(
+    Map<String, dynamic> bursary,
+    HomeScreenNotifier homeNotifier,
+  ) {
     return GestureDetector(
-      onTap: () => _viewModel.onBursaryCardTapped(bursary),
+      onTap: () => homeNotifier.onBursaryCardTapped(bursary),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -678,7 +832,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: () => _viewModel.onApplyNowTapped(bursary['title']),
+              onPressed: () => homeNotifier.onApplyNowTapped(bursary['title']),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,

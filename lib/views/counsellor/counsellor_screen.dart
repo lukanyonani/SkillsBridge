@@ -17,8 +17,8 @@ class _AICouncelorScreenState extends State<AICouncelorScreen>
   bool _isRecording = false;
   bool _isTyping = false;
   double _progressValue = 0.6;
-  int _currentStep = 3;
-  int _totalSteps = 5;
+  final int _currentStep = 3;
+  final int _totalSteps = 5;
   late AnimationController _typingAnimationController;
 
   @override
@@ -235,7 +235,6 @@ class _AICouncelorScreenState extends State<AICouncelorScreen>
           child: Column(
             children: [
               _buildHeader(),
-              _buildProgressBar(),
               Expanded(child: _buildMessagesList()),
               if (_isTyping) _buildTypingIndicator(),
               _buildInputArea(),
@@ -342,42 +341,6 @@ class _AICouncelorScreenState extends State<AICouncelorScreen>
           borderRadius: BorderRadius.circular(18),
         ),
         child: Center(child: Text(icon, style: TextStyle(fontSize: 16))),
-      ),
-    );
-  }
-
-  Widget _buildProgressBar() {
-    return Container(
-      color: Color(0xFFF9FAFB),
-      padding: EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Skills Assessment Progress - Step $_currentStep of $_totalSteps",
-            style: TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
-          ),
-          SizedBox(height: 8),
-          Container(
-            height: 6,
-            decoration: BoxDecoration(
-              color: Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(3),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: _progressValue,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF2563EB), Color(0xFF10B981)],
-                  ),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

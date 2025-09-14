@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/models/bursary_models.dart';
 import 'package:skillsbridge/viewmodels/bursary_screen_vm.dart'; // Import the provider
 
-class BursaryFinderScreen extends ConsumerStatefulWidget {
-  const BursaryFinderScreen({super.key});
+class BursaryFinderTestScreen extends ConsumerStatefulWidget {
+  const BursaryFinderTestScreen({super.key});
 
   @override
-  ConsumerState<BursaryFinderScreen> createState() =>
+  ConsumerState<BursaryFinderTestScreen> createState() =>
       _BursaryFinderScreenState();
 }
 
-class _BursaryFinderScreenState extends ConsumerState<BursaryFinderScreen> {
+class _BursaryFinderScreenState extends ConsumerState<BursaryFinderTestScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -161,6 +161,34 @@ class _BursaryFinderScreenState extends ConsumerState<BursaryFinderScreen> {
                         ),
                       ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: notifier.refreshBursaries,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: state.isRefreshing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.refresh,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                  ),
                 ),
               ),
             ],

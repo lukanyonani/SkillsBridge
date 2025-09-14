@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skillsbridge/viewmodels/jobs_screen_vm.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:skillsbridge/views/jobs/job_application_screen.dart';
 
 class JobPortalScreen extends StatefulWidget {
   const JobPortalScreen({super.key});
@@ -13,11 +12,33 @@ class JobPortalScreen extends StatefulWidget {
 
 class _JobPortalScreenState extends State<JobPortalScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  late JobsScreenViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize scroll controller for pagination
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // Handle scroll for pagination
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
+      // Load more when user scrolls near the bottom
+      final viewModel = context.read<JobsScreenViewModel>();
+      if (viewModel.hasMorePages && !viewModel.isLoadingMore) {
+        viewModel.loadMoreJobs();
+      }
+    }
   }
 
   @override
@@ -26,6 +47,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
       create: (_) => JobsScreenViewModel(),
       child: Consumer<JobsScreenViewModel>(
         builder: (context, viewModel, child) {
+          _viewModel = viewModel;
           return Scaffold(
             backgroundColor: const Color(0xFFF9FAFB),
             body: viewModel.showDetail
@@ -44,15 +66,204 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
           _buildTopHeader(viewModel),
           _buildHeader(viewModel),
           _buildResultsBar(viewModel),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: viewModel.jobs.length,
-              itemBuilder: (context, index) =>
-                  _buildJobCard(viewModel.jobs[index], viewModel),
-            ),
+          Expanded(child: _buildJobListBody(viewModel)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobListBody(JobsScreenViewModel viewModel) {
+    // Show error state
+    if (viewModel.hasError && !viewModel.hasJobs) {
+      return _buildErrorState(viewModel);
+    }
+
+    // Show loading state for initial load
+    if (viewModel.isLoading && !viewModel.hasJobs) {
+      return _buildLoadingState();
+    }
+
+    // Show empty state
+    if (!viewModel.isLoading && !viewModel.hasJobs) {
+      return _buildEmptyState(viewModel);
+    }
+
+    // Show job list with pull-to-refresh
+    return RefreshIndicator(
+      onRefresh: () async {
+        await viewModel.refreshJobs();
+      },
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        itemCount: viewModel.jobs.length + (viewModel.isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          // Show loading indicator at the bottom when loading more
+          if (index == viewModel.jobs.length) {
+            return _buildLoadMoreIndicator();
+          }
+
+          return _buildJobCard(viewModel.jobs[index], viewModel);
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Finding great opportunities for you...',
+            style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(JobsScreenViewModel viewModel) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: const Center(
+                child: Text('⚠️', style: TextStyle(fontSize: 32)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Oops! Something went wrong',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              viewModel.errorMessage ?? 'Unable to load jobs right now',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: () => viewModel.testApiConnection(),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF2563EB)),
+                  ),
+                  child: const Text(
+                    'Test Connection',
+                    style: TextStyle(color: Color(0xFF2563EB)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () => viewModel.refreshJobs(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(JobsScreenViewModel viewModel) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDBEAFE),
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: const Center(
+                child: Text('🔍', style: TextStyle(fontSize: 32)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No jobs found',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Try adjusting your search or filters to find more opportunities',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                _searchController.clear();
+                viewModel.updateSearchQuery('');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Clear Search'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreIndicator() {
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Loading more jobs...',
+              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -84,34 +295,42 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
           ),
           Row(
             children: [
-              Stack(
-                children: [
-                  _buildIconButton('💾'),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${viewModel.savedJobsCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+              GestureDetector(
+                onTap: () => _showSavedJobs(viewModel),
+                child: Stack(
+                  children: [
+                    _buildIconButton('💾'),
+                    if (viewModel.savedJobsCount > 0)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${viewModel.savedJobsCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => _showDebugInfo(viewModel),
+                child: _buildIconButton('⚙️'),
+              ),
             ],
           ),
         ],
@@ -154,60 +373,83 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
             child: TextField(
               controller: _searchController,
               onChanged: viewModel.updateSearchQuery,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Job title, keywords, or company',
-                prefixIcon: Padding(
+                prefixIcon: const Padding(
                   padding: EdgeInsets.all(11),
                   child: Text('🔍', style: TextStyle(fontSize: 20)),
                 ),
+                suffixIcon: viewModel.isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFF2563EB),
+                            ),
+                          ),
+                        ),
+                      )
+                    : _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          viewModel.updateSearchQuery('');
+                        },
+                      )
+                    : null,
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
           ),
         ),
         const SizedBox(width: 8),
-        // Expanded(
-        //   child: Container(
-        //     decoration: BoxDecoration(
-        //       border: Border.all(color: const Color(0xFFE5E7EB)),
-        //       borderRadius: BorderRadius.circular(12),
-        //     ),
-        //     child: DropdownButtonFormField<String>(
-        //       value: viewModel.locationQuery,
-        //       onChanged: (String? newValue) {
-        //         if (newValue != null) {
-        //           viewModel.updateLocationQuery(newValue);
-        //         }
-        //       },
-        //       decoration: const InputDecoration(
-        //         prefixIcon: Padding(
-        //           padding: EdgeInsets.all(12),
-        //           child: Text('📍', style: TextStyle(fontSize: 20)),
-        //         ),
-        //         border: InputBorder.none,
-        //         contentPadding: EdgeInsets.symmetric(
-        //           vertical: 14,
-        //           horizontal: 12,
-        //         ),
-        //       ),
-        //       items: viewModel.availableLocations.map<DropdownMenuItem<String>>(
-        //         (String location) {
-        //           return DropdownMenuItem<String>(
-        //             value: location,
-        //             child: Text(location, style: const TextStyle(fontSize: 14)),
-        //           );
-        //         },
-        //       ).toList(),
-        //       dropdownColor: Colors.white,
-        //       icon: const Icon(
-        //         Icons.keyboard_arrow_down,
-        //         color: Color(0xFF6B7280),
-        //       ),
-        //       style: const TextStyle(fontSize: 14, color: Color(0xFF111827)),
-        //     ),
-        //   ),
-        // ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: viewModel.locationQuery,
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  viewModel.updateLocationQuery(newValue);
+                }
+              },
+              icon: const Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+              items: viewModel.availableLocations.map<DropdownMenuItem<String>>(
+                (String location) {
+                  return DropdownMenuItem<String>(
+                    value: location,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('📍', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Text(location, style: const TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ).toList(),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -226,7 +468,8 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
             padding: EdgeInsets.only(right: 8, left: index == 0 ? 0 : 0),
             child: GestureDetector(
               onTap: () => viewModel.toggleFilter(filter),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 8,
@@ -239,11 +482,21 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                         : const Color(0xFFD1D5DB),
                   ),
                   borderRadius: BorderRadius.circular(20),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Text(
                   filter,
                   style: TextStyle(
                     fontSize: 13,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                     color: isActive ? Colors.white : const Color(0xFF111827),
                   ),
                 ),
@@ -262,12 +515,27 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '${viewModel.jobsCount} Jobs Found',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF374151),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${viewModel.jobsCount} Jobs Found',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF374151),
+                  ),
+                ),
+                if (viewModel.hasMorePages)
+                  Text(
+                    'Page ${viewModel.currentPage} of ${viewModel.totalPages}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+              ],
             ),
           ),
           GestureDetector(
@@ -280,6 +548,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'Sort: ${viewModel.sortOption}',
@@ -301,6 +570,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
     JobsScreenViewModel viewModel,
   ) {
     final isSaved = viewModel.isJobSaved(job['id']);
+    final isNew = job['isNew'] == true;
 
     return GestureDetector(
       onTap: () => viewModel.selectJob(job),
@@ -308,8 +578,19 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(
+            color: isNew
+                ? const Color(0xFF10B981).withOpacity(0.3)
+                : const Color(0xFFE5E7EB),
+          ),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Stack(
           children: [
@@ -324,12 +605,12 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: job['logoColor'],
+                          color: job['logoColor'] ?? const Color(0xFFF3F4F6),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
                           child: Text(
-                            job['logo'],
+                            job['logo'] ?? '🏢',
                             style: const TextStyle(fontSize: 24),
                           ),
                         ),
@@ -340,20 +621,24 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              job['title'],
+                              job['title'] ?? 'Unknown Position',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF111827),
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              job['company'],
+                              job['company'] ?? 'Unknown Company',
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Color(0xFF6B7280),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -365,61 +650,68 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                     spacing: 12,
                     runSpacing: 8,
                     children: [
-                      _buildJobMetaItem('📍', job['location']),
-                      _buildJobMetaItem('💰', job['salary']),
+                      _buildJobMetaItem('📍', job['location'] ?? 'Unknown'),
+                      _buildJobMetaItem('💰', job['salary'] ?? 'Negotiable'),
                       _buildJobMetaItem(
                         job['type'] == 'Remote' ? '🌍' : '🏠',
-                        job['type'],
+                        job['type'] ?? 'On-site',
                       ),
-                      _buildJobMetaItem('⏰', job['workType']),
+                      _buildJobMetaItem('⏰', job['workType'] ?? 'Full-time'),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Wrap(
-                        spacing: 6,
-                        children: [
-                          ...(job['tags'] as List<String>).map(
-                            (tag) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                tag,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF374151),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            ...(job['tags'] as List<String>? ?? [])
+                                .take(3)
+                                .map(
+                                  (tag) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3F4F6),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF374151),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            if (isNew)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'New',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          if (job['isNew'])
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEF4444),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'New',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -428,13 +720,13 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: viewModel.getMatchGradient(
-                              job['matchLevel'],
+                              job['matchLevel'] ?? 'medium',
                             ),
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${job['matchScore']}% Match',
+                          '${job['matchScore'] ?? 75}% Match',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -452,7 +744,8 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
               right: 16,
               child: GestureDetector(
                 onTap: () => viewModel.toggleSaveJob(job['id']),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
@@ -463,14 +756,19 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                           : const Color(0xFFE5E7EB),
                     ),
                     borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Center(
-                    child: Text(
-                      '💾',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isSaved ? Colors.white : null,
-                      ),
+                    child: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      size: 16,
+                      color: isSaved ? Colors.white : const Color(0xFF6B7280),
                     ),
                   ),
                 ),
@@ -488,14 +786,18 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
       children: [
         Text(icon, style: const TextStyle(fontSize: 13)),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF4B5563)),
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF4B5563)),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
   }
 
+  // Job Detail View (keeping existing implementation)
   Widget _buildJobDetail(JobsScreenViewModel viewModel) {
     if (viewModel.selectedJob == null) return Container();
 
@@ -508,7 +810,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _buildMatchAnalysis(viewModel),
+                  const SizedBox(height: 18),
                   _buildDetailBody(viewModel),
                   const SizedBox(height: 100),
                 ],
@@ -548,14 +850,14 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        job['logo'],
+                        job['logo'] ?? '🏢',
                         style: const TextStyle(fontSize: 40),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    job['title'],
+                    job['title'] ?? 'Unknown Position',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
@@ -565,21 +867,22 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    job['company'],
+                    job['company'] ?? 'Unknown Company',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    spacing: 16,
                     children: [
-                      _buildDetailMetaItem('📍', job['location']),
-                      const SizedBox(width: 16),
-                      _buildDetailMetaItem('💰', job['salary'].split(' - ')[0]),
-                      const SizedBox(width: 16),
-                      _buildDetailMetaItem('🏠', job['type']),
+                      _buildDetailMetaItem('📍', job['location'] ?? 'Unknown'),
+                      _buildDetailMetaItem(
+                        '💰',
+                        (job['salary'] ?? 'Negotiable').split(' - ')[0],
+                      ),
+                      _buildDetailMetaItem('🏠', job['type'] ?? 'On-site'),
                     ],
                   ),
                 ],
@@ -611,120 +914,11 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
 
   Widget _buildDetailMetaItem(String icon, String text) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(icon, style: const TextStyle(fontSize: 14, color: Colors.white)),
         const SizedBox(width: 4),
         Text(text, style: const TextStyle(fontSize: 14, color: Colors.white)),
-      ],
-    );
-  }
-
-  Widget _buildMatchAnalysis(JobsScreenViewModel viewModel) {
-    final job = viewModel.selectedJob!;
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Your Match Score',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${job['matchScore']}%',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF10B981),
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  const Text('🎯', style: TextStyle(fontSize: 24)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Great Match!',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: const Color(0xFF10B981),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildMatchFactor('💼', 'Experience Level', 0.9),
-          const SizedBox(height: 12),
-          _buildMatchFactor('🎓', 'Education Match', 1.0),
-          const SizedBox(height: 12),
-          _buildMatchFactor('💡', 'Skills Match', 0.75),
-          const SizedBox(height: 12),
-          _buildMatchFactor('📍', 'Location Fit', 0.8),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMatchFactor(String icon, String name, double value) {
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: const Color(0xFFDBEAFE),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Center(
-            child: Text(icon, style: const TextStyle(fontSize: 16)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-              ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: value,
-                  minHeight: 6,
-                  backgroundColor: const Color(0xFFE5E7EB),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF10B981),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -815,19 +1009,16 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
-              child: Text(
+              child: Icon(
                 status == 'met'
-                    ? '✓'
+                    ? Icons.check
                     : status == 'partial'
-                    ? '!'
-                    : '○',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: status == 'unmet'
-                      ? const Color(0xFF6B7280)
-                      : Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+                    ? Icons.warning
+                    : Icons.circle_outlined,
+                size: 12,
+                color: status == 'unmet'
+                    ? const Color(0xFF6B7280)
+                    : Colors.white,
               ),
             ),
           ),
@@ -908,7 +1099,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
         ...similarJobs.map(
           (job) => GestureDetector(
             onTap: () {
-              // Navigate to similar job
+              // Could navigate to similar job
             },
             child: Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -920,26 +1111,28 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        job['title'] as String,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF111827),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          job['title'] as String,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF111827),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${job['company']} • ${job['location']} • ${job['salary']}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${job['company']} • ${job['location']} • ${job['salary']}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Text(
                     '${job['match']}%',
@@ -991,12 +1184,10 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(
-                    '💾',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: isSaved ? Colors.white : null,
-                    ),
+                  child: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? Colors.white : const Color(0xFF2563EB),
+                    size: 20,
                   ),
                 ),
               ),
@@ -1025,44 +1216,219 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
     );
   }
 
+  // Additional Features
   void _showSortOptions(JobsScreenViewModel viewModel) {
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: viewModel.sortOptions.map((option) {
-              return ListTile(
-                title: Text(option),
-                trailing: viewModel.sortOption == option
-                    ? const Icon(Icons.check, color: Color(0xFF2563EB))
-                    : null,
-                onTap: () {
-                  viewModel.updateSortOption(option);
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Sort Jobs',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              ...viewModel.sortOptions.map((option) {
+                return ListTile(
+                  title: Text(option),
+                  leading: Radio<String>(
+                    value: option,
+                    groupValue: viewModel.sortOption,
+                    onChanged: (value) {
+                      if (value != null) {
+                        viewModel.updateSortOption(value);
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                  onTap: () {
+                    viewModel.updateSortOption(option);
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
           ),
         );
       },
     );
   }
 
-  void _applyForJob(JobsScreenViewModel viewModel) {
-    final job = viewModel.selectedJob!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Applied for ${job['title']} at ${job['company']}'),
-        backgroundColor: const Color(0xFF10B981),
-        action: SnackBarAction(
-          label: 'View Status',
-          textColor: Colors.white,
-          onPressed: () {},
+  void _showSavedJobs(JobsScreenViewModel viewModel) {
+    final savedJobs = viewModel.getSavedJobs();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Saved Jobs (${savedJobs.length})',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (savedJobs.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('📁', style: TextStyle(fontSize: 48)),
+                        SizedBox(height: 16),
+                        Text(
+                          'No saved jobs yet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Save jobs you\'re interested in to view them here',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: savedJobs.length,
+                    itemBuilder: (context, index) {
+                      return _buildJobCard(savedJobs[index], viewModel);
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDebugInfo(JobsScreenViewModel viewModel) {
+    final debugInfo = viewModel.getDebugInfo();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Debug Info'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: debugInfo.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('${entry.key}: ${entry.value}'),
+              );
+            }).toList(),
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              viewModel.testApiConnection();
+            },
+            child: const Text('Test API'),
+          ),
+        ],
       ),
     );
   }
+
+  void _applyForJob(JobsScreenViewModel viewModel) {
+    final job = viewModel.selectedJob!;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => JobApplicationWebView(job: job)),
+    );
+  }
+
+  // void _applyForJob(JobsScreenViewModel viewModel) {
+  //   final job = viewModel.selectedJob!;
+
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Apply for Job'),
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Text('Position: ${job['title']}'),
+  //           Text('Company: ${job['company']}'),
+  //           const SizedBox(height: 16),
+  //           const Text(
+  //             'This would normally open the application process or redirect to the company\'s website.',
+  //           ),
+  //         ],
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('Cancel'),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               SnackBar(
+  //                 content: Text(
+  //                   'Applied for ${job['title']} at ${job['company']}',
+  //                 ),
+  //                 backgroundColor: const Color(0xFF10B981),
+  //                 action: SnackBarAction(
+  //                   label: 'View',
+  //                   textColor: Colors.white,
+  //                   onPressed: () {},
+  //                 ),
+  //               ),
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: const Color(0xFF2563EB),
+  //             foregroundColor: Colors.white,
+  //           ),
+  //           child: const Text('Apply'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }
