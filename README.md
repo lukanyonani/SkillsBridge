@@ -12,7 +12,7 @@ The integrated AI counselor provides 24/7 personalized career guidance, making p
 The platform uses intelligent algorithms to match users with relevant opportunities based on their skills, location, and career goals. This reduces the time and effort users spend searching through irrelevant listings, directly improving their experience.
 
 ## Real-Time Information Access
-By integrating with live APIs (CareerJet for jobs, Bursary databases, course providers), users get current, accurate information rather than outdated listings found on many other platforms.
+By integrating with live APIs (Jobs databases, Bursary databases, course providers), users get current, accurate information rather than outdated listings found on many other platforms.
 
 ## Mobile-First Accessibility
 The responsive design ensures users can access career development tools from their smartphones, which is crucial for the target demographic who may rely primarily on mobile devices.
@@ -21,7 +21,7 @@ The responsive design ensures users can access career development tools from the
 Users can track their learning progress, application status, and career development in one dashboard, providing transparency and motivation that many existing platforms lack.
 
 ## Localized South African Focus
-The platform specifically addresses South African users with local job markets, NSFAS integration, and region-specific opportunities, creating a more relevant experience than generic international platforms.
+The platform specifically addresses South African users with local job markets, bursary oppertunities, and region-specific opportunities, creating a more relevant experience than generic international platforms.
 
 ---
 
@@ -163,7 +163,7 @@ Addressing South Africa's R47 billion youth unemployment crisis by creating the 
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/skillsbridge.git
+git clone https://github.com/lukanyonani/skillsbridge.git
 
 # Navigate to project directory
 cd skillsbridge
