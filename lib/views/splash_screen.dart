@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:skillsbridge/views/onboarding/onboarding.dart';
 import 'dart:async';
-import 'main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
     });
     Timer(const Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => MainNavigationScreen()),
+        MaterialPageRoute(builder: (context) => OnboardingScreen()),
       );
     });
   }

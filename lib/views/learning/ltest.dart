@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/models/course_models.dart';
 import 'package:skillsbridge/viewmodels/learning_screen_vm.dart';
+// Import the new course detail screen
+import 'course_detail_screen.dart'; // Add this import
 
 class LearningTesterHubScreen extends ConsumerStatefulWidget {
   const LearningTesterHubScreen({super.key});
@@ -29,33 +31,69 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
     }
 
     if (viewModel.errorMessage != null) {
-      return Scaffold(body: Center(child: Text(viewModel.errorMessage!)));
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Color(0xFF6B7280),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Something went wrong',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                viewModel.errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => viewModel.refreshData(),
+                child: const Text('Try Again'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
-      body: Column(
-        children: [
-          //_buildCategoryTabs(viewModel),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: viewModel.refreshData,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildTopHeader(),
-                    _buildHeader(viewModel),
-                    _buildFeaturedCourse(viewModel),
-                    _buildPopularCourses(viewModel),
-                    const SizedBox(height: 10),
-                    _buildCategoryTabs(viewModel),
-                    _buildAllCourses(viewModel),
-                    const SizedBox(height: 100), // Space for bottom nav
-                  ],
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopHeader(),
+            _buildHeader(viewModel),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: viewModel.refreshData,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildFeaturedCourse(viewModel),
+                      const SizedBox(height: 10),
+                      _buildCategoryTabs(viewModel),
+                      _buildAllCourses(viewModel),
+                      if (viewModel.hasMorePages)
+                        _buildLoadMoreButton(viewModel),
+                      const SizedBox(height: 100), // Space for bottom nav
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -85,6 +123,22 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
               maxLines: 1,
             ),
           ),
+          // Add debug/mock mode toggle
+          Consumer(
+            builder: (context, ref, child) {
+              final viewModel = ref.watch(learningHubViewModelProvider);
+              return IconButton(
+                onPressed: () => viewModel.toggleMockMode(),
+                icon: Icon(
+                  viewModel.isUsingMockData ? Icons.bug_report : Icons.cloud,
+                  color: Colors.white,
+                ),
+                tooltip: viewModel.isUsingMockData
+                    ? 'Using Mock Data'
+                    : 'Using Live API',
+              );
+            },
+          ),
         ],
       ),
     );
@@ -97,7 +151,6 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Header top
           // Search bar
           Container(
             decoration: BoxDecoration(
@@ -156,32 +209,6 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
       color: Colors.white,
       child: Column(
         children: [
-          Padding(
-            padding: EdgeInsetsGeometry.only(
-              left: 20,
-              bottom: 16,
-              top: 20,
-              right: 36,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'All Courses',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  'Filter',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: const Color(0xFF2563EB),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           SizedBox(
             height: 50,
             child: ListView.builder(
@@ -237,7 +264,7 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
     return Container(
       margin: const EdgeInsets.all(20),
       child: GestureDetector(
-        onTap: () => _navigateToCourseDetail(viewModel),
+        onTap: () => _navigateToCourseDetail(course, viewModel),
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -247,6 +274,13 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
               colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
             ),
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2563EB).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,7 +314,7 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'by SkillsBridge',
+                'by ${course.instructor}',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
                   fontSize: 14,
@@ -289,9 +323,12 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildFeaturedStat('⭐', 'Free'),
+                  _buildFeaturedStat('⭐', course.rating.toString()),
                   const SizedBox(width: 16),
-                  _buildFeaturedStat('⏱️', 'Programming'),
+                  _buildFeaturedStat(
+                    '📚',
+                    "${course.category}" ?? 'Programming',
+                  ),
                   const SizedBox(width: 16),
                   _buildFeaturedStat('⏱️', '30 Videos'),
                 ],
@@ -313,152 +350,69 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
     );
   }
 
-  Widget _buildPopularCourses(LearningHubViewModel viewModel) {
-    final courses = viewModel.popularCourses;
+  Widget _buildAllCourses(LearningHubViewModel viewModel) {
+    final courses = viewModel.filteredCourses;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Popular Courses',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                'See all →',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: const Color(0xFF2563EB),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 235,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: courses.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 200,
-                  margin: const EdgeInsets.only(right: 12),
-                  child: _buildCourseCard(courses[index], viewModel),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCourseCard(Course course, LearningHubViewModel viewModel) {
-    return GestureDetector(
-      onTap: () => _navigateToCourseDetail(viewModel),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          borderRadius: BorderRadius.circular(16),
-        ),
+    if (courses.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 120,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFDBEAFE), Color(0xFF3B82F6)],
-                ),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-              ),
-              child: const Center(
-                child: Text('📚', style: TextStyle(fontSize: 48)),
+            const Icon(Icons.search_off, size: 64, color: Color(0xFF9CA3AF)),
+            const SizedBox(height: 16),
+            const Text(
+              'No courses found',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    course.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'SkillsBridge',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                  const SizedBox(height: 8),
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Text('⭐', style: TextStyle(fontSize: 12)),
-                          SizedBox(width: 4),
-                          Text('4.5', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                      Text(
-                        'Free',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            const SizedBox(height: 8),
+            const Text(
+              'Try adjusting your search or filters',
+              style: TextStyle(color: Color(0xFF6B7280)),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => viewModel.clearFilters(),
+              child: const Text('Clear Filters'),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAllCourses(LearningHubViewModel viewModel) {
-    final courses = viewModel.filteredCourses;
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //   children: [
-          //     const Text(
-          //       'All Courses',
-          //       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          //     ),
-          //     Text(
-          //       'Filter →',
-          //       style: TextStyle(
-          //         fontSize: 14,
-          //         color: const Color(0xFF2563EB),
-          //         fontWeight: FontWeight.w500,
-          //       ),
-          //     ),
-          //   ],
-          // ),
-          //const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'All Courses (${courses.length})',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (viewModel.activeFilters.length > 1 ||
+                  viewModel.searchQuery.isNotEmpty)
+                TextButton(
+                  onPressed: () => viewModel.clearFilters(),
+                  child: const Text(
+                    'Clear filters',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF2563EB),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
           ...courses.map((course) => _buildCourseListItem(course, viewModel)),
         ],
       ),
@@ -468,97 +422,166 @@ class _LearningHubScreenState extends ConsumerState<LearningTesterHubScreen> {
   Widget _buildCourseListItem(Course course, LearningHubViewModel viewModel) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFFE5E7EB)),
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: GestureDetector(
-        onTap: () => _navigateToCourseDetail(viewModel),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFF3F4F6), Color(0xFFE5E7EB)],
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Text('📚', style: TextStyle(fontSize: 32)),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    course.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToCourseDetail(course, viewModel),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF3B82F6).withOpacity(0.1),
+                        const Color(0xFF8B5CF6).withOpacity(0.1),
+                      ],
                     ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'SkillsBridge',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                  child: const Center(
+                    child: Text('📚', style: TextStyle(fontSize: 32)),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '⭐ Free',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF4B5563),
-                        ),
-                      ),
                       Text(
-                        ' • ${course.level}',
+                        course.title,
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF4B5563),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF111827),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        course.instructor,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF6B7280),
                         ),
                       ),
-                      const Text(
-                        ' • 30 hours',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF4B5563),
-                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star,
+                            size: 14,
+                            color: Colors.amber.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            course.rating.toString(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF4B5563),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            ' • ${course.level}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF4B5563),
+                            ),
+                          ),
+                          if (course.pricing.type == PricingType.free)
+                            Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'FREE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Color(0xFF2563EB),
+                  size: 16,
+                ),
+              ],
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Color(0xFF2563EB),
-              size: 20,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void _navigateToCourseDetail(LearningHubViewModel viewModel) {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => ChangeNotifierProvider.value(
-    //       value: viewModel,
-    //       child: const CourseDetailScreen(),
-    //     ),
-    //   ),
-    // );
+  Widget _buildLoadMoreButton(LearningHubViewModel viewModel) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: ElevatedButton(
+        onPressed: viewModel.isLoading ? null : viewModel.loadMoreCourses,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2563EB),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: viewModel.isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Text(
+                'Load More Courses',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+      ),
+    );
+  }
+
+  // Updated navigation method
+  void _navigateToCourseDetail(Course course, LearningHubViewModel viewModel) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CourseDetailScreen(course: course),
+      ),
+    );
   }
 }

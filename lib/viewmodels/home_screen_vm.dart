@@ -171,9 +171,9 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
         _fetchTotalCourses(),
       ]);
 
-      final totalJobs = results[0] as int;
-      final totalBursaries = results[1] as int;
-      final totalCourses = results[2] as int;
+      final totalJobs = results[0];
+      final totalBursaries = results[1];
+      final totalCourses = results[2];
 
       // 📈 Update user stats with fetched totals
       final updatedStats = Map<String, dynamic>.from(state.userStats);
@@ -385,7 +385,7 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
             .map(
               (bursary) => {
                 'title': bursary.title,
-                'amount': bursary.amount?.isNotEmpty == true
+                'amount': bursary.amount.isNotEmpty == true
                     ? bursary.amount
                     : 'Amount not specified',
                 'deadline': '⏰ ${_formatDeadline(bursary.daysLeft)}',

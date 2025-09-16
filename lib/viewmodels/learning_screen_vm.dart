@@ -1,231 +1,68 @@
-// 🚀 Learning Hub ViewModel with Riverpod - The Brain of Our Learning Platform!
-// This ViewModel manages all the state and business logic for the learning hub.
-// Now powered by Riverpod for better state management and with API integration!
-// Features automatic fallback to sample data when API is unavailable. 🎯
+// lib/viewmodels/learning_screen_vm.dart
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/data/courses_api.dart';
-import 'package:skillsbridge/data/offline/courses_data.dart';
 import 'package:skillsbridge/models/course_models.dart';
 
-// 🌟 Provider for the API service - Singleton instance
+// Provider for the API service
 final coursesApiServiceProvider = Provider<CoursesApiService>((ref) {
-  debugPrint('🏗️ Creating Courses API Service Provider');
   return CoursesApiService();
 });
 
-// 🔧 Provider for mock mode state - Controls whether we use API or sample data
+// Provider for mock mode state
 final useMockModeProvider = StateProvider<bool>((ref) {
-  debugPrint('🎭 Mock mode initialized to false - Will try API first!');
-  return true; // Start with API, fallback to mock if needed
+  return true; // Start with mock mode enabled for development
 });
 
-// 📚 Main ViewModel Provider - The heart of our learning hub!
+// Main ViewModel Provider
 final learningHubViewModelProvider =
     ChangeNotifierProvider.autoDispose<LearningHubViewModel>((ref) {
-      debugPrint('🎓 Creating Learning Hub ViewModel with Riverpod power!');
       final apiService = ref.watch(coursesApiServiceProvider);
       final useMock = ref.watch(useMockModeProvider);
 
-      return LearningHubViewModel(
-        apiService: apiService,
-        useMock: useMock,
-        ref: ref,
-      );
+      // Set mock mode on API service
+      CoursesApiService.setMockMode(useMock);
+
+      return LearningHubViewModel(apiService: apiService, ref: ref);
     });
 
-// 🎯 The Main ViewModel Class - Where the magic happens!
+/// Learning Hub ViewModel with complete API integration
 class LearningHubViewModel extends ChangeNotifier {
-  // 🔧 Dependencies and References
-  final CoursesApiService apiService;
-  final bool useMock;
-  final Ref ref;
+  final CoursesApiService _apiService;
+  final Ref _ref;
 
-  // 🎨 UI State Variables - Track everything the UI needs!
-  int _currentNavIndex = 1; // Learn tab is active by default
+  // UI State
+  int _currentNavIndex = 1;
   int _selectedCategoryIndex = 0;
   List<String> _activeFilters = ['All Levels'];
   String _searchQuery = '';
   bool _isEnrolled = false;
   List<bool> _expandedSections = [false, false, false, false];
 
-  // 📊 Data State - Courses and related information
+  // Data State
   List<Course> _courses = [];
-  List<Course> _featuredCourses = [];
-  List<String> _categories = [];
+  List<FeaturedCourse> _featuredCourses = [];
+  TopicsResponse? _topicsResponse;
   bool _isLoading = false;
   String? _errorMessage;
 
-  // 🚀 Constructor - Initialize everything!
+  // Search/Filter State
+  SearchResponse? _lastSearchResponse;
+  int _currentPage = 1;
+  bool _hasMorePages = false;
+
   LearningHubViewModel({
-    required this.apiService,
-    required this.useMock,
-    required this.ref,
-  }) {
-    debugPrint('🎉 Learning Hub ViewModel initialized!');
-    debugPrint('🎭 Mock mode: $useMock');
+    required CoursesApiService apiService,
+    required Ref ref,
+  }) : _apiService = apiService,
+       _ref = ref {
+    debugPrint('Initializing Learning Hub ViewModel');
     _initializeData();
   }
 
-  // 🔄 Initialize data - Load courses from API or sample data
-  Future<void> _initializeData() async {
-    debugPrint('🔄 Starting data initialization...');
-
-    if (useMock) {
-      debugPrint('🎭 Using mock data as requested!');
-      _loadMockData();
-    } else {
-      debugPrint('🌐 Attempting to load from API...');
-      await _loadFromApi();
-    }
-  }
-
-  // 🌐 Load data from API with automatic fallback
-  Future<void> _loadFromApi() async {
-    try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-
-      debugPrint('🚀 Checking API health...');
-
-      // First, check if API is healthy
-      try {
-        final health = await apiService.checkHealth();
-        debugPrint('✅ API health check passed: ${health.status}');
-      } catch (e) {
-        debugPrint('⚠️ API health check failed, switching to mock mode!');
-        _switchToMockMode();
-        return;
-      }
-
-      // Load courses from API
-      debugPrint('📚 Loading courses from API...');
-      final searchResponse = await apiService.searchCourses(
-        hasVideoLectures: true,
-        limit: 30,
-      );
-
-      _courses = searchResponse.courses;
-      debugPrint('✅ Loaded ${_courses.length} courses from API!');
-
-      // Load featured courses
-      debugPrint('🌟 Loading featured courses...');
-      try {
-        final featured = await apiService.getFeaturedCourses();
-        //_featuredCourses = featured.map((f) => f.course).toList();
-        debugPrint('✅ Loaded ${_featuredCourses.length} featured courses!');
-      } catch (e) {
-        debugPrint('⚠️ Featured courses failed, continuing without them');
-      }
-
-      // Load topics/categories
-      debugPrint('📂 Loading categories...');
-      try {
-        final topicsResponse = await apiService.getTopics();
-        //_categories = ['All', ...topicsResponse.topics];
-        debugPrint('✅ Loaded ${_categories.length} categories!');
-      } catch (e) {
-        debugPrint('⚠️ Categories failed, using default list');
-        _loadDefaultCategories();
-      }
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('❌ API loading failed: $e');
-      debugPrint('🔄 Switching to mock mode as fallback...');
-      _switchToMockMode();
-    }
-  }
-
-  // 🎭 Switch to mock mode - Our safety net!
-  void _switchToMockMode() {
-    debugPrint('🎭 Activating mock mode - Sample data to the rescue!');
-    ref.read(useMockModeProvider.notifier).state = true;
-    _loadMockData();
-  }
-
-  // 📦 Load mock/sample data - The fallback hero!
-  void _loadMockData() {
-    debugPrint('📦 Loading sample course data...');
-
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      // Load sample courses from sample.dart
-      _courses = sampleCourses;
-      debugPrint('✅ Loaded ${_courses.length} sample courses!');
-
-      // Featured courses are the first 5 with video lectures
-      _featuredCourses = _courses
-          .where((c) => c.hasVideoLectures)
-          .take(5)
-          .toList();
-      debugPrint('🌟 Selected ${_featuredCourses.length} featured courses!');
-
-      // Load default categories
-      _loadDefaultCategories();
-
-      _isLoading = false;
-      notifyListeners();
-
-      debugPrint('🎉 Mock data loaded successfully!');
-    } catch (e) {
-      debugPrint('❌ Failed to load mock data: $e');
-      _errorMessage = 'Failed to load course data. Please try again.';
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // 📂 Load default categories - Always have something to show!
-  void _loadDefaultCategories() {
-    debugPrint('📂 Loading default categories...');
-    _categories = [
-      'All',
-      'Computer Science',
-      'Mathematics',
-      'Engineering',
-      'Physics',
-      'Biology',
-      'Chemistry',
-      'Business',
-      'Psychology',
-      'Economics',
-      'Data Science',
-      'Machine Learning',
-      'Web Development',
-      'Mobile Development',
-      'Artificial Intelligence',
-    ];
-    debugPrint('✅ Loaded ${_categories.length} default categories!');
-  }
-
-  // 🔄 Refresh data - Try API again or reload mock
-  Future<void> refreshData() async {
-    debugPrint('🔄 Refreshing course data...');
-
-    if (useMock) {
-      debugPrint('🎭 Refreshing mock data...');
-      _loadMockData();
-    } else {
-      debugPrint('🌐 Trying to refresh from API...');
-      await _loadFromApi();
-    }
-  }
-
-  // 🔄 Force API retry - Give the API another chance!
-  Future<void> retryApiConnection() async {
-    debugPrint('🔄 Forcing API retry...');
-    ref.read(useMockModeProvider.notifier).state = false;
-    await _loadFromApi();
-  }
-
-  // 🎯 Getters - Access to all our state!
+  // Getters
   int get currentNavIndex => _currentNavIndex;
   int get selectedCategoryIndex => _selectedCategoryIndex;
   List<String> get activeFilters => _activeFilters;
@@ -234,159 +71,448 @@ class LearningHubViewModel extends ChangeNotifier {
   List<bool> get expandedSections => _expandedSections;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isUsingMockData => ref.read(useMockModeProvider);
+  bool get isUsingMockData => CoursesApiService.isMockMode;
+  bool get hasMorePages => _hasMorePages;
+  int get currentPage => _currentPage;
 
   List<Course> get courses => _courses;
-  List<Course> get featuredCourses => _featuredCourses;
-  List<String> get categories => _categories;
+  List<FeaturedCourse> get featuredCourses => _featuredCourses;
 
-  // 🎨 Get featured course for display
+  List<String> get categories {
+    if (_topicsResponse?.topics != null) {
+      return ['All', ..._topicsResponse!.topics];
+    }
+    return ['All'];
+  }
+
+  List<String> get departments {
+    return _topicsResponse?.departments ?? [];
+  }
+
+  Map<String, String> get departmentNames {
+    return _topicsResponse?.departmentNames ?? {};
+  }
+
   Course? get featuredCourse {
-    if (_featuredCourses.isEmpty) return null;
-    return _featuredCourses.first;
+    if (_featuredCourses.isNotEmpty) {
+      // Convert FeaturedCourse to Course for UI compatibility
+      final featured = _featuredCourses.first;
+      return _courses.firstWhere(
+        (course) => course.id == featured.id,
+        orElse: () => Course(
+          id: featured.id,
+          title: featured.title,
+          description: featured.description,
+          instructor: featured.instructor,
+          thumbnailUrl: featured.thumbnailUrl,
+          level: featured.level,
+          category: featured.category,
+          rating: featured.rating,
+          reviewCount: 0,
+          pricing: CoursePricing(type: PricingType.free),
+          totalDuration: Duration.zero,
+          lessons: [],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          enrollmentCount: featured.enrollmentCount,
+        ),
+      );
+    }
+    return null;
   }
 
-  // 📚 Get popular courses - Top rated courses with videos!
   List<Course> get popularCourses {
-    final popular = _courses.where((c) => c.hasVideoLectures).take(4).toList();
-    debugPrint('📊 Returning ${popular.length} popular courses');
-    return popular;
+    return _courses.take(4).toList();
   }
 
-  // 📖 Get all courses for list view
   List<Course> get allCourses => _courses;
 
-  // 🔍 Filter courses based on search and filters
   List<Course> get filteredCourses {
-    debugPrint('🔍 Filtering courses...');
-    List<Course> filtered = _courses;
-
-    // Apply category filter
-    if (_selectedCategoryIndex > 0 &&
-        _selectedCategoryIndex < _categories.length) {
-      final selectedCategory = _categories[_selectedCategoryIndex];
-      filtered = filtered.where((course) {
-        return course.topics.any(
-          (topic) =>
-              topic.toLowerCase().contains(selectedCategory.toLowerCase()),
-        );
-      }).toList();
-      debugPrint('📂 Applied category filter: $selectedCategory');
-    }
-
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((course) {
-        return course.title.toLowerCase().contains(
-              _searchQuery.toLowerCase(),
-            ) ||
-            course.description!.toLowerCase().contains(
-              _searchQuery.toLowerCase(),
-            ) ||
-            course.topics.any(
-              (t) => t.toLowerCase().contains(_searchQuery.toLowerCase()),
-            );
-      }).toList();
-      debugPrint('🔎 Applied search filter: $_searchQuery');
-    }
-
-    // Apply level filters
-    for (String filter in _activeFilters) {
-      switch (filter) {
-        case 'Undergraduate':
-          filtered = filtered.where((c) => c.level == 'Undergraduate').toList();
-          debugPrint('🎓 Applied Undergraduate filter');
-          break;
-        case 'Graduate':
-          filtered = filtered.where((c) => c.level == 'Graduate').toList();
-          debugPrint('🎓 Applied Graduate filter');
-          break;
-        // Add more filters as needed
-      }
-    }
-
-    debugPrint(
-      '✅ Filtering complete: ${filtered.length} courses match criteria',
-    );
-    return filtered;
+    // Since filtering is handled by the API, return all courses
+    // The API already applied the filters based on our search parameters
+    return _courses;
   }
 
-  // 🎯 Navigation Methods
+  /// Initialize data from API
+  Future<void> _initializeData() async {
+    _setLoading(true);
+
+    try {
+      // Load topics/categories first
+      await _loadTopics();
+
+      // Load featured courses
+      await _loadFeaturedCourses();
+
+      // Load initial courses
+      await _searchCourses();
+    } catch (e) {
+      _setError('Failed to initialize data: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Load topics and departments from API
+  Future<void> _loadTopics() async {
+    try {
+      debugPrint('Loading topics from API...');
+      _topicsResponse = await _apiService.getTopics();
+      debugPrint('Topics loaded: ${_topicsResponse?.topics.length ?? 0}');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load topics: $e');
+      // Continue without topics
+    }
+  }
+
+  /// Load featured courses from API
+  Future<void> _loadFeaturedCourses() async {
+    try {
+      debugPrint('Loading featured courses from API...');
+      _featuredCourses = await _apiService.getFeaturedCourses();
+      debugPrint('Featured courses loaded: ${_featuredCourses.length}');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load featured courses: $e');
+      // Continue without featured courses
+    }
+  }
+
+  /// Search courses with current filters
+  Future<void> _searchCourses({
+    bool loadMore = false,
+    bool resetResults = true,
+  }) async {
+    try {
+      final searchPage = loadMore ? _currentPage + 1 : 1;
+
+      if (!loadMore) {
+        _setLoading(true);
+      }
+
+      debugPrint('Searching courses: query="$_searchQuery", page=$searchPage');
+
+      // Build search parameters
+      final selectedCategory =
+          _selectedCategoryIndex > 0 &&
+              _selectedCategoryIndex < categories.length
+          ? categories[_selectedCategoryIndex]
+          : null;
+
+      final levelFilter = _activeFilters.firstWhere(
+        (filter) => [
+          'Beginner',
+          'Intermediate',
+          'Advanced',
+          'Undergraduate',
+          'Graduate',
+        ].contains(filter),
+        orElse: () => '',
+      );
+
+      final response = await _apiService.searchCourses(
+        query: _searchQuery.isNotEmpty ? _searchQuery : null,
+        topic: selectedCategory != null && selectedCategory != 'All'
+            ? selectedCategory
+            : null,
+        level: levelFilter.isNotEmpty ? levelFilter : null,
+        hasVideoLectures: true, // Always prefer courses with videos
+        sort: 'relevance',
+        page: searchPage,
+        limit: 20,
+      );
+
+      _lastSearchResponse = response;
+      _currentPage = searchPage;
+      _hasMorePages = searchPage < response.totalPages;
+
+      if (resetResults || !loadMore) {
+        _courses = response.courses;
+      } else {
+        // Append results for pagination
+        _courses.addAll(response.courses);
+      }
+
+      debugPrint(
+        'Search completed: ${response.courses.length} courses loaded, page $_currentPage/${response.totalPages}',
+      );
+      _clearError();
+    } catch (e) {
+      _setError('Failed to search courses: $e');
+    } finally {
+      if (!loadMore) {
+        _setLoading(false);
+      }
+    }
+  }
+
+  /// Load more courses (pagination)
+  Future<void> loadMoreCourses() async {
+    if (!_hasMorePages || _isLoading) return;
+
+    debugPrint('Loading more courses...');
+    await _searchCourses(loadMore: true, resetResults: false);
+  }
+
+  /// Refresh all data
+  Future<void> refreshData() async {
+    debugPrint('Refreshing all data...');
+    _currentPage = 1;
+    await _initializeData();
+  }
+
+  /// Force API retry
+  Future<void> retryApiConnection() async {
+    debugPrint('Retrying API connection...');
+    _ref.read(useMockModeProvider.notifier).state = false;
+    CoursesApiService.setMockMode(false);
+    await refreshData();
+  }
+
+  /// Toggle mock mode
+  void toggleMockMode() {
+    final newMode = !CoursesApiService.isMockMode;
+    debugPrint('Toggling mock mode to: $newMode');
+    _ref.read(useMockModeProvider.notifier).state = newMode;
+    CoursesApiService.setMockMode(newMode);
+    refreshData();
+  }
+
+  /// Update search query and trigger search
+  void updateSearchQuery(String query) {
+    if (_searchQuery != query) {
+      debugPrint('Updating search query: "$query"');
+      _searchQuery = query;
+      _currentPage = 1;
+      notifyListeners();
+
+      // Debounce search to avoid too many API calls
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _searchCourses();
+      });
+    }
+  }
+
+  Timer? _debounceTimer;
+
+  /// Select category and trigger search
+  void selectCategory(int index) {
+    if (_selectedCategoryIndex != index) {
+      debugPrint('Selecting category at index: $index');
+      _selectedCategoryIndex = index;
+      _currentPage = 1;
+      notifyListeners();
+      _searchCourses();
+    }
+  }
+
+  /// Toggle filter and trigger search
+  void toggleFilter(String filter) {
+    debugPrint('Toggling filter: $filter');
+
+    if (_activeFilters.contains(filter)) {
+      _activeFilters.remove(filter);
+    } else {
+      // Remove conflicting filters
+      if (['Beginner', 'Intermediate', 'Advanced'].contains(filter)) {
+        _activeFilters.removeWhere(
+          (f) => ['Beginner', 'Intermediate', 'Advanced'].contains(f),
+        );
+      } else if (['Undergraduate', 'Graduate'].contains(filter)) {
+        _activeFilters.removeWhere(
+          (f) => ['Undergraduate', 'Graduate'].contains(f),
+        );
+      }
+      _activeFilters.add(filter);
+    }
+
+    // Ensure "All Levels" is present if no level filters are active
+    final hasLevelFilter = _activeFilters.any(
+      (f) => [
+        'Beginner',
+        'Intermediate',
+        'Advanced',
+        'Undergraduate',
+        'Graduate',
+      ].contains(f),
+    );
+
+    if (!hasLevelFilter && !_activeFilters.contains('All Levels')) {
+      _activeFilters.add('All Levels');
+    } else if (hasLevelFilter) {
+      _activeFilters.remove('All Levels');
+    }
+
+    _currentPage = 1;
+    notifyListeners();
+    _searchCourses();
+  }
+
+  /// Clear all filters
+  void clearFilters() {
+    debugPrint('Clearing all filters');
+    _activeFilters = ['All Levels'];
+    _selectedCategoryIndex = 0;
+    _searchQuery = '';
+    _currentPage = 1;
+    notifyListeners();
+    _searchCourses();
+  }
+
+  /// Check if filter is active
+  bool isFilterActive(String filter) => _activeFilters.contains(filter);
+
+  /// Search by department
+  Future<void> searchByDepartment(String department) async {
+    debugPrint('Searching by department: $department');
+    try {
+      _setLoading(true);
+
+      final response = await _apiService.searchCourses(
+        department: department,
+        hasVideoLectures: true,
+        sort: 'enrollment',
+        page: 1,
+        limit: 20,
+      );
+
+      _courses = response.courses;
+      _lastSearchResponse = response;
+      _currentPage = 1;
+      _hasMorePages = response.totalPages > 1;
+
+      debugPrint(
+        'Department search completed: ${response.courses.length} courses',
+      );
+      _clearError();
+    } catch (e) {
+      _setError('Failed to search by department: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Navigation methods
   void updateNavIndex(int index) {
-    debugPrint('🧭 Updating navigation index to: $index');
     _currentNavIndex = index;
     notifyListeners();
   }
 
-  void selectCategory(int index) {
-    debugPrint('📂 Selecting category at index: $index');
-    _selectedCategoryIndex = index;
-    notifyListeners();
-  }
-
-  void updateSearchQuery(String query) {
-    debugPrint('🔍 Updating search query: $query');
-    _searchQuery = query;
-    notifyListeners();
-  }
-
-  // 🏷️ Filter Management
-  void toggleFilter(String filter) {
-    debugPrint('🏷️ Toggling filter: $filter');
-    if (_activeFilters.contains(filter)) {
-      _activeFilters.remove(filter);
-      debugPrint('❌ Removed filter: $filter');
-    } else {
-      _activeFilters.add(filter);
-      debugPrint('✅ Added filter: $filter');
-    }
-    notifyListeners();
-  }
-
-  void clearFilters() {
-    debugPrint('🧹 Clearing all filters');
-    _activeFilters.clear();
-    _activeFilters.add('All Levels');
-    notifyListeners();
-  }
-
-  bool isFilterActive(String filter) => _activeFilters.contains(filter);
-
-  // 📚 Course Enrollment
+  /// Course enrollment
   void toggleEnrollment() {
-    debugPrint('🎯 Toggling enrollment status');
     _isEnrolled = !_isEnrolled;
-    debugPrint(
-      _isEnrolled ? '✅ Enrolled in course!' : '❌ Unenrolled from course',
-    );
+    debugPrint(_isEnrolled ? 'Enrolled in course' : 'Unenrolled from course');
     notifyListeners();
   }
 
-  // 📋 Syllabus Management
+  /// Syllabus management
   void toggleSyllabusSection(int index) {
     if (index < _expandedSections.length) {
-      debugPrint('📋 Toggling syllabus section $index');
       _expandedSections[index] = !_expandedSections[index];
       notifyListeners();
     }
   }
 
-  // 🔄 Reset everything - Fresh start!
+  /// Helper methods
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+
+  void _setError(String error) {
+    _errorMessage = error;
+    debugPrint('Error: $error');
+    notifyListeners();
+  }
+
+  void _clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Reset to default state
   void reset() {
-    debugPrint('🔄 Resetting all state to defaults');
+    debugPrint('Resetting ViewModel state');
     _currentNavIndex = 1;
     _selectedCategoryIndex = 0;
     _activeFilters = ['All Levels'];
     _searchQuery = '';
     _isEnrolled = false;
     _expandedSections = [false, false, false, false];
+    _currentPage = 1;
     notifyListeners();
-    debugPrint('✅ Reset complete!');
+    _searchCourses();
   }
 
   @override
   void dispose() {
-    debugPrint('🧹 Disposing Learning Hub ViewModel');
+    _debounceTimer?.cancel();
+    debugPrint('Disposing Learning Hub ViewModel');
     super.dispose();
   }
 }
+
+/// Usage Example in main.dart or app initialization:
+/// 
+/// void main() {
+///   // Enable mock mode for development
+///   CoursesApiService.setMockMode(true);
+///   
+///   runApp(
+///     ProviderScope(
+///       child: MyApp(),
+///     ),
+///   );
+/// }
+/// 
+/// Usage in Widget:
+/// 
+/// class LearningScreen extends ConsumerWidget {
+///   @override
+///   Widget build(BuildContext context, WidgetRef ref) {
+///     final viewModel = ref.watch(learningHubViewModelProvider);
+///     
+///     if (viewModel.isLoading) {
+///       return CircularProgressIndicator();
+///     }
+///     
+///     return Column(
+///       children: [
+///         // Search functionality
+///         TextField(
+///           onChanged: viewModel.updateSearchQuery,
+///           decoration: InputDecoration(hintText: 'Search courses...'),
+///         ),
+///         
+///         // Categories
+///         ...viewModel.categories.asMap().entries.map((entry) {
+///           final index = entry.key;
+///           final category = entry.value;
+///           return FilterChip(
+///             label: Text(category),
+///             selected: viewModel.selectedCategoryIndex == index,
+///             onSelected: (_) => viewModel.selectCategory(index),
+///           );
+///         }),
+///         
+///         // Courses list
+///         ...viewModel.courses.map((course) => 
+///           ListTile(
+///             title: Text(course.title),
+///             subtitle: Text(course.instructor),
+///             trailing: Text('⭐ ${course.rating}'),
+///           ),
+///         ),
+///         
+///         // Load more button
+///         if (viewModel.hasMorePages)
+///           ElevatedButton(
+///             onPressed: viewModel.loadMoreCourses,
+///             child: Text('Load More'),
+///           ),
+///       ],
+///     );
+///   }
+/// }

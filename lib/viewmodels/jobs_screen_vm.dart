@@ -370,7 +370,7 @@ class JobsScreenViewModel extends ChangeNotifier {
               );
             }
           } catch (e) {
-            debugPrint('⚠️ Failed to process job ${i}: $e');
+            debugPrint('⚠️ Failed to process job $i: $e');
           }
         }
 
@@ -388,7 +388,7 @@ class JobsScreenViewModel extends ChangeNotifier {
         // 🎉 Success feedback
         debugPrint('🎉 Search completed successfully!');
         debugPrint(
-          '📊 Final stats: ${_jobs.length} jobs displayed, ${_jobsCount} total available',
+          '📊 Final stats: ${_jobs.length} jobs displayed, $_jobsCount total available',
         );
       } else {
         throw Exception('API returned null response');

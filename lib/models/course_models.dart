@@ -1,446 +1,606 @@
-// courses_models.dart
-// Dart models for the MIT OpenCourseWare API (https://courses-api-1qr7.onrender.com/)
-// Generated with cheerful comments and full null-safety.
-// These plain Dart classes provide `fromJson` / `toJson` factories so you can
-// easily decode responses from the API and encode objects back to JSON.
+// lib/models/course_models.dart
 
-import 'dart:convert';
-
-/// Top-level helpers to decode API responses from raw JSON strings.
-SearchResponse searchResponseFromJson(String str) =>
-    SearchResponse.fromJson(json.decode(str));
-FeaturedCourse featuredCourseFromJson(String str) =>
-    FeaturedCourse.fromJson(json.decode(str));
-TopicsResponse topicsResponseFromJson(String str) =>
-    TopicsResponse.fromJson(json.decode(str));
-HealthResponse healthResponseFromJson(String str) =>
-    HealthResponse.fromJson(json.decode(str));
-
-String searchResponseToJson(SearchResponse data) => json.encode(data.toJson());
-String featuredCourseToJson(FeaturedCourse data) => json.encode(data.toJson());
-String topicsResponseToJson(TopicsResponse data) => json.encode(data.toJson());
-String healthResponseToJson(HealthResponse data) => json.encode(data.toJson());
-
-// -----------------------------------------------------------------------------
-// Basic small models
-// -----------------------------------------------------------------------------
-
-/// Represents an instructor of a course.
-class Instructor {
-  Instructor({required this.name, this.title});
-
-  final String name;
-  final String? title;
-
-  factory Instructor.fromJson(Map<String, dynamic> json) => Instructor(
-    name: json['name'] as String? ?? '',
-    title: json['title'] as String?,
-  );
-
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    if (title != null) 'title': title,
-  };
-}
-
-// -----------------------------------------------------------------------------
-// Course model(s)
-// -----------------------------------------------------------------------------
-
-/// Core Course model that mirrors the JSON returned in the API's `courses` array.
 class Course {
+  final String id;
+  final String title;
+  final String description;
+  final String instructor;
+  final String thumbnailUrl;
+  final CourseLevel level;
+  final CourseCategory category;
+  final double rating;
+  final int reviewCount;
+  final CoursePricing pricing;
+  final Duration totalDuration;
+  final List<Lesson> lessons;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isFeatured;
+  final bool isPopular;
+  final List<String> tags;
+  final int enrollmentCount;
+
   Course({
     required this.id,
-    this.courseNumber,
     required this.title,
-    this.department,
-    this.url,
-    this.description,
-    this.instructors = const [],
-    this.semester,
-    this.hasVideoLectures = false,
-    this.hasLectureNotes = false,
-    this.hasAssignments = false,
-    this.level,
-    this.topics = const [],
-    this.languages = const [],
-    this.license,
-    this.estimatedHours,
-    this.thumbnailImage,
+    required this.description,
+    required this.instructor,
+    required this.thumbnailUrl,
+    required this.level,
+    required this.category,
+    required this.rating,
+    required this.reviewCount,
+    required this.pricing,
+    required this.totalDuration,
+    required this.lessons,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isFeatured = false,
+    this.isPopular = false,
+    this.tags = const [],
+    this.enrollmentCount = 0,
   });
 
-  final String id; // e.g. "6-006-spring-2020"
-  final String? courseNumber; // e.g. "6.006"
-  final String title;
-  final String? department;
-  final String? url;
-  final String? description;
-  final List<Instructor> instructors;
-  final String? semester;
-  final bool hasVideoLectures;
-  final bool hasLectureNotes;
-  final bool hasAssignments;
-  final String? level;
-  final List<String> topics;
-  final List<String> languages;
-  final String? license;
-  final int? estimatedHours;
-  final String? thumbnailImage;
+  // Computed properties
+  int get totalVideos => lessons.length;
 
-  factory Course.fromJson(Map<String, dynamic> json) => Course(
-    id: json['id'] as String? ?? '',
-    courseNumber: json['courseNumber'] as String?,
-    title: json['title'] as String? ?? '',
-    department: json['department'] as String?,
-    url: json['url'] as String?,
-    description: json['description'] as String?,
-    instructors:
-        (json['instructors'] as List<dynamic>?)
-            ?.map((e) => Instructor.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [],
-    semester: json['semester'] as String?,
-    hasVideoLectures: json['hasVideoLectures'] as bool? ?? false,
-    hasLectureNotes: json['hasLectureNotes'] as bool? ?? false,
-    hasAssignments: json['hasAssignments'] as bool? ?? false,
-    level: json['level'] as String?,
-    topics:
-        (json['topics'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-        [],
-    languages:
-        (json['languages'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [],
-    license: json['license'] as String?,
-    estimatedHours: json['estimatedHours'] is int
-        ? json['estimatedHours'] as int
-        : (json['estimatedHours'] != null
-              ? int.tryParse(json['estimatedHours'].toString())
-              : null),
-    thumbnailImage: json['thumbnailImage'] as String?,
-  );
+  String get formattedDuration {
+    final hours = totalDuration.inHours;
+    final minutes = totalDuration.inMinutes % 60;
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    }
+    return '${minutes}m';
+  }
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    if (courseNumber != null) 'courseNumber': courseNumber,
-    'title': title,
-    if (department != null) 'department': department,
-    if (url != null) 'url': url,
-    if (description != null) 'description': description,
-    'instructors': instructors.map((i) => i.toJson()).toList(),
-    if (semester != null) 'semester': semester,
-    'hasVideoLectures': hasVideoLectures,
-    'hasLectureNotes': hasLectureNotes,
-    'hasAssignments': hasAssignments,
-    if (level != null) 'level': level,
-    'topics': topics,
-    'languages': languages,
-    if (license != null) 'license': license,
-    if (estimatedHours != null) 'estimatedHours': estimatedHours,
-    if (thumbnailImage != null) 'thumbnailImage': thumbnailImage,
-  };
+  String get formattedRating => rating.toStringAsFixed(1);
+
+  bool get isFree => pricing.type == PricingType.free;
+
+  // Factory constructor from JSON
+  factory Course.fromJson(Map<String, dynamic> json) {
+    return Course(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      instructor: json['instructor'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String,
+      level: CourseLevel.fromString(json['level'] as String),
+      category: CourseCategory.fromString(json['category'] as String),
+      rating: (json['rating'] as num).toDouble(),
+      reviewCount: json['reviewCount'] as int,
+      pricing: CoursePricing.fromJson(json['pricing'] as Map<String, dynamic>),
+      totalDuration: Duration(seconds: json['totalDurationSeconds'] as int),
+      lessons: (json['lessons'] as List<dynamic>)
+          .map(
+            (lessonJson) => Lesson.fromJson(lessonJson as Map<String, dynamic>),
+          )
+          .toList(),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      isFeatured: json['isFeatured'] as bool? ?? false,
+      isPopular: json['isPopular'] as bool? ?? false,
+      tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
+      enrollmentCount: json['enrollmentCount'] as int? ?? 0,
+    );
+  }
+
+  // Convert to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'instructor': instructor,
+      'thumbnailUrl': thumbnailUrl,
+      'level': level.value,
+      'category': category.value,
+      'rating': rating,
+      'reviewCount': reviewCount,
+      'pricing': pricing.toJson(),
+      'totalDurationSeconds': totalDuration.inSeconds,
+      'lessons': lessons.map((lesson) => lesson.toJson()).toList(),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'isFeatured': isFeatured,
+      'isPopular': isPopular,
+      'tags': tags,
+      'enrollmentCount': enrollmentCount,
+    };
+  }
+
+  // Copy with method for immutable updates
+  Course copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? instructor,
+    String? thumbnailUrl,
+    CourseLevel? level,
+    CourseCategory? category,
+    double? rating,
+    int? reviewCount,
+    CoursePricing? pricing,
+    Duration? totalDuration,
+    List<Lesson>? lessons,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isFeatured,
+    bool? isPopular,
+    List<String>? tags,
+    int? enrollmentCount,
+  }) {
+    return Course(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      instructor: instructor ?? this.instructor,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      level: level ?? this.level,
+      category: category ?? this.category,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      pricing: pricing ?? this.pricing,
+      totalDuration: totalDuration ?? this.totalDuration,
+      lessons: lessons ?? this.lessons,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isFeatured: isFeatured ?? this.isFeatured,
+      isPopular: isPopular ?? this.isPopular,
+      tags: tags ?? this.tags,
+      enrollmentCount: enrollmentCount ?? this.enrollmentCount,
+    );
+  }
 }
 
-/// FeaturedCourse contains extra metadata commonly returned by `/courses/featured`.
-class FeaturedCourse extends Course {
-  FeaturedCourse({
-    required String id,
-    String? courseNumber,
-    required String title,
-    String? department,
-    String? url,
+class Lesson {
+  final String id;
+  final String title;
+  final String description;
+  final String videoUrl;
+  final String? thumbnailUrl;
+  final Duration duration;
+  final int orderIndex;
+  final bool isPreview;
+  final LessonType type;
+  final List<String> resources; // URLs to additional resources
+  final Map<String, dynamic>? metadata; // Additional lesson data
+
+  Lesson({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.videoUrl,
+    this.thumbnailUrl,
+    required this.duration,
+    required this.orderIndex,
+    this.isPreview = false,
+    this.type = LessonType.video,
+    this.resources = const [],
+    this.metadata,
+  });
+
+  String get formattedDuration {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  factory Lesson.fromJson(Map<String, dynamic> json) {
+    return Lesson(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      videoUrl: json['videoUrl'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      duration: Duration(seconds: json['durationSeconds'] as int),
+      orderIndex: json['orderIndex'] as int,
+      isPreview: json['isPreview'] as bool? ?? false,
+      type: LessonType.fromString(json['type'] as String? ?? 'video'),
+      resources: (json['resources'] as List<dynamic>?)?.cast<String>() ?? [],
+      metadata: json['metadata'] as Map<String, dynamic>?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'videoUrl': videoUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'durationSeconds': duration.inSeconds,
+      'orderIndex': orderIndex,
+      'isPreview': isPreview,
+      'type': type.value,
+      'resources': resources,
+      'metadata': metadata,
+    };
+  }
+
+  Lesson copyWith({
+    String? id,
+    String? title,
     String? description,
-    List<Instructor> instructors = const [],
-    String? semester,
-    bool hasVideoLectures = false,
-    bool hasLectureNotes = false,
-    bool hasAssignments = false,
-    String? level,
-    List<String> topics = const [],
-    List<String> languages = const [],
-    String? license,
-    int? estimatedHours,
-    String? thumbnailImage,
-    this.heroImage,
-    this.rating,
-    this.enrollmentCount,
-    this.lastUpdated,
-  }) : super(
-         id: id,
-         courseNumber: courseNumber,
-         title: title,
-         department: department,
-         url: url,
-         description: description,
-         instructors: instructors,
-         semester: semester,
-         hasVideoLectures: hasVideoLectures,
-         hasLectureNotes: hasLectureNotes,
-         hasAssignments: hasAssignments,
-         level: level,
-         topics: topics,
-         languages: languages,
-         license: license,
-         estimatedHours: estimatedHours,
-         thumbnailImage: thumbnailImage,
-       );
+    String? videoUrl,
+    String? thumbnailUrl,
+    Duration? duration,
+    int? orderIndex,
+    bool? isPreview,
+    LessonType? type,
+    List<String>? resources,
+    Map<String, dynamic>? metadata,
+  }) {
+    return Lesson(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      videoUrl: videoUrl ?? this.videoUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      duration: duration ?? this.duration,
+      orderIndex: orderIndex ?? this.orderIndex,
+      isPreview: isPreview ?? this.isPreview,
+      type: type ?? this.type,
+      resources: resources ?? this.resources,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+}
 
-  final String? heroImage;
-  final double? rating; // e.g. 4.8
-  final int? enrollmentCount;
-  final DateTime? lastUpdated;
+enum CourseLevel {
+  all('All Levels'),
+  undergraduate('Undergraduate'),
+  graduate('Graduate'),
+  beginner('Beginner'),
+  intermediate('Intermediate'),
+  advanced('Advanced');
 
-  factory FeaturedCourse.fromJson(Map<String, dynamic> json) {
-    final base = Course.fromJson(json);
-    return FeaturedCourse(
-      id: base.id,
-      courseNumber: base.courseNumber,
-      title: base.title,
-      department: base.department,
-      url: base.url,
-      description: base.description,
-      instructors: base.instructors,
-      semester: base.semester,
-      hasVideoLectures: base.hasVideoLectures,
-      hasLectureNotes: base.hasLectureNotes,
-      hasAssignments: base.hasAssignments,
-      level: base.level,
-      topics: base.topics,
-      languages: base.languages,
-      license: base.license,
-      estimatedHours: base.estimatedHours,
-      thumbnailImage: base.thumbnailImage,
-      heroImage: json['heroImage'] as String? ?? base.thumbnailImage,
-      rating: json['rating'] is num
-          ? (json['rating'] as num).toDouble()
-          : (json['rating'] != null
-                ? double.tryParse(json['rating'].toString())
-                : null),
-      enrollmentCount: json['enrollmentCount'] is int
-          ? json['enrollmentCount'] as int
-          : (json['enrollmentCount'] != null
-                ? int.tryParse(json['enrollmentCount'].toString())
-                : null),
-      lastUpdated: json['lastUpdated'] != null
-          ? DateTime.tryParse(json['lastUpdated'] as String)
+  const CourseLevel(this.value);
+  final String value;
+
+  static CourseLevel fromString(String value) {
+    return CourseLevel.values.firstWhere(
+      (level) => level.value == value,
+      orElse: () => CourseLevel.all,
+    );
+  }
+}
+
+enum CourseCategory {
+  all('All'),
+  programming('Programming'),
+  design('Design'),
+  business('Business'),
+  marketing('Marketing'),
+  dataScience('Data Science'),
+  engineering('Engineering'),
+  mathematics('Mathematics'),
+  language('Language'),
+  arts('Arts'),
+  health('Health'),
+  music('Music');
+
+  const CourseCategory(this.value);
+  final String value;
+
+  static CourseCategory fromString(String value) {
+    return CourseCategory.values.firstWhere(
+      (category) => category.value == value,
+      orElse: () => CourseCategory.all,
+    );
+  }
+}
+
+enum PricingType {
+  free('Free'),
+  paid('Paid'),
+  subscription('Subscription');
+
+  const PricingType(this.value);
+  final String value;
+
+  static PricingType fromString(String value) {
+    return PricingType.values.firstWhere(
+      (type) => type.value == value,
+      orElse: () => PricingType.free,
+    );
+  }
+}
+
+class CoursePricing {
+  final PricingType type;
+  final double? amount;
+  final String? currency;
+  final double? discountedAmount;
+  final DateTime? discountExpiry;
+
+  CoursePricing({
+    required this.type,
+    this.amount,
+    this.currency = 'USD',
+    this.discountedAmount,
+    this.discountExpiry,
+  });
+
+  bool get isFree => type == PricingType.free;
+  bool get hasDiscount =>
+      discountedAmount != null && discountedAmount! < amount!;
+
+  String get displayPrice {
+    if (isFree) return 'Free';
+    if (hasDiscount) return '\$${discountedAmount!.toStringAsFixed(2)}';
+    return '\$${amount!.toStringAsFixed(2)}';
+  }
+
+  factory CoursePricing.fromJson(Map<String, dynamic> json) {
+    return CoursePricing(
+      type: PricingType.fromString(json['type'] as String),
+      amount: (json['amount'] as num?)?.toDouble(),
+      currency: json['currency'] as String? ?? 'USD',
+      discountedAmount: (json['discountedAmount'] as num?)?.toDouble(),
+      discountExpiry: json['discountExpiry'] != null
+          ? DateTime.parse(json['discountExpiry'] as String)
           : null,
     );
   }
 
-  @override
   Map<String, dynamic> toJson() {
-    final map = super.toJson();
-    map.addAll({
-      if (heroImage != null) 'heroImage': heroImage,
-      if (rating != null) 'rating': rating,
-      if (enrollmentCount != null) 'enrollmentCount': enrollmentCount,
-      if (lastUpdated != null) 'lastUpdated': lastUpdated!.toIso8601String(),
-    });
-    return map;
+    return {
+      'type': type.value,
+      'amount': amount,
+      'currency': currency,
+      'discountedAmount': discountedAmount,
+      'discountExpiry': discountExpiry?.toIso8601String(),
+    };
   }
 }
 
-// -----------------------------------------------------------------------------
-// Pagination & Filters (returned alongside search results)
-// -----------------------------------------------------------------------------
+enum LessonType {
+  video('video'),
+  quiz('quiz'),
+  reading('reading'),
+  assignment('assignment'),
+  discussion('discussion');
 
-class Pagination {
-  Pagination({
-    required this.total,
-    required this.page,
-    required this.limit,
-    required this.totalPages,
+  const LessonType(this.value);
+  final String value;
+
+  static LessonType fromString(String value) {
+    return LessonType.values.firstWhere(
+      (type) => type.value == value,
+      orElse: () => LessonType.video,
+    );
+  }
+}
+
+// Additional model for user progress tracking
+class CourseProgress {
+  final String courseId;
+  final String userId;
+  final List<String> completedLessons;
+  final DateTime lastAccessedAt;
+  final double progressPercentage;
+  final Duration totalWatchTime;
+
+  CourseProgress({
+    required this.courseId,
+    required this.userId,
+    required this.completedLessons,
+    required this.lastAccessedAt,
+    required this.progressPercentage,
+    required this.totalWatchTime,
   });
 
-  final int total;
+  bool isLessonCompleted(String lessonId) {
+    return completedLessons.contains(lessonId);
+  }
+
+  factory CourseProgress.fromJson(Map<String, dynamic> json) {
+    return CourseProgress(
+      courseId: json['courseId'] as String,
+      userId: json['userId'] as String,
+      completedLessons: (json['completedLessons'] as List<dynamic>)
+          .cast<String>(),
+      lastAccessedAt: DateTime.parse(json['lastAccessedAt'] as String),
+      progressPercentage: (json['progressPercentage'] as num).toDouble(),
+      totalWatchTime: Duration(seconds: json['totalWatchTimeSeconds'] as int),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'courseId': courseId,
+      'userId': userId,
+      'completedLessons': completedLessons,
+      'lastAccessedAt': lastAccessedAt.toIso8601String(),
+      'progressPercentage': progressPercentage,
+      'totalWatchTimeSeconds': totalWatchTime.inSeconds,
+    };
+  }
+}
+
+// lib/models/api_response_models.dart
+
+/// Search response from the courses API
+class SearchResponse {
+  final List<Course> courses;
+  final int totalCount;
   final int page;
   final int limit;
   final int totalPages;
+  final Map<String, dynamic>? filters;
 
-  factory Pagination.fromJson(Map<String, dynamic> json) => Pagination(
-    total: (json['total'] as num?)?.toInt() ?? 0,
-    page: (json['page'] as num?)?.toInt() ?? 1,
-    limit: (json['limit'] as num?)?.toInt() ?? 20,
-    totalPages: (json['totalPages'] as num?)?.toInt() ?? 1,
-  );
-
-  Map<String, dynamic> toJson() => {
-    'total': total,
-    'page': page,
-    'limit': limit,
-    'totalPages': totalPages,
-  };
-}
-
-class Filters {
-  Filters({this.departments = const [], this.topics = const []});
-
-  final List<String> departments;
-  final List<String> topics;
-
-  factory Filters.fromJson(Map<String, dynamic> json) => Filters(
-    departments:
-        (json['departments'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [],
-    topics:
-        (json['topics'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-        [],
-  );
-
-  Map<String, dynamic> toJson() => {
-    'departments': departments,
-    'topics': topics,
-  };
-}
-
-// -----------------------------------------------------------------------------
-// Search Response wrapper
-// -----------------------------------------------------------------------------
-
-class SearchResponse {
   SearchResponse({
     required this.courses,
-    required this.pagination,
-    required this.filters,
+    required this.totalCount,
+    required this.page,
+    required this.limit,
+    required this.totalPages,
+    this.filters,
   });
 
-  final List<Course> courses;
-  final Pagination pagination;
-  final Filters filters;
+  factory SearchResponse.fromJson(Map<String, dynamic> json) {
+    return SearchResponse(
+      courses: (json['courses'] as List<dynamic>)
+          .map(
+            (courseJson) => Course.fromJson(courseJson as Map<String, dynamic>),
+          )
+          .toList(),
+      totalCount: json['totalCount'] as int,
+      page: json['page'] as int,
+      limit: json['limit'] as int,
+      totalPages: json['totalPages'] as int,
+      filters: json['filters'] as Map<String, dynamic>?,
+    );
+  }
 
-  factory SearchResponse.fromJson(Map<String, dynamic> json) => SearchResponse(
-    courses:
-        (json['courses'] as List<dynamic>?)
-            ?.map((e) => Course.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [],
-    pagination: json['pagination'] != null
-        ? Pagination.fromJson(json['pagination'] as Map<String, dynamic>)
-        : Pagination(total: 0, page: 1, limit: 20, totalPages: 1),
-    filters: json['filters'] != null
-        ? Filters.fromJson(json['filters'] as Map<String, dynamic>)
-        : Filters(),
-  );
-
-  Map<String, dynamic> toJson() => {
-    'courses': courses.map((c) => c.toJson()).toList(),
-    'pagination': pagination.toJson(),
-    'filters': filters.toJson(),
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'courses': courses.map((course) => course.toJson()).toList(),
+      'totalCount': totalCount,
+      'page': page,
+      'limit': limit,
+      'totalPages': totalPages,
+      'filters': filters,
+    };
+  }
 }
 
-// -----------------------------------------------------------------------------
-// Topics response
-// -----------------------------------------------------------------------------
-
-class TopicItem {
-  TopicItem({
-    required this.id,
-    required this.name,
-    this.description,
-    this.subcategories = const [],
-    this.courseCount,
-  });
-
+/// Featured course model for highlighted courses
+class FeaturedCourse {
   final String id;
-  final String name;
-  final String? description;
-  final List<String> subcategories;
-  final int? courseCount;
+  final String title;
+  final String description;
+  final String instructor;
+  final String thumbnailUrl;
+  final CourseLevel level;
+  final CourseCategory category;
+  final double rating;
+  final int enrollmentCount;
+  final String? reason; // Why this course is featured
+  final int? rank; // Featured ranking
 
-  factory TopicItem.fromJson(Map<String, dynamic> json) => TopicItem(
-    id: json['id'] as String? ?? '',
-    name: json['name'] as String? ?? '',
-    description: json['description'] as String?,
-    subcategories:
-        (json['subcategories'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [],
-    courseCount: json['courseCount'] is int
-        ? json['courseCount'] as int
-        : (json['courseCount'] != null
-              ? int.tryParse(json['courseCount'].toString())
-              : null),
-  );
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    if (description != null) 'description': description,
-    'subcategories': subcategories,
-    if (courseCount != null) 'courseCount': courseCount,
-  };
-}
-
-class TopicsResponse {
-  TopicsResponse({
-    this.topics = const [],
-    this.departments = const [],
-    this.availableFilters,
+  FeaturedCourse({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.instructor,
+    required this.thumbnailUrl,
+    required this.level,
+    required this.category,
+    required this.rating,
+    required this.enrollmentCount,
+    this.reason,
+    this.rank,
   });
 
-  final List<TopicItem> topics;
+  factory FeaturedCourse.fromJson(Map<String, dynamic> json) {
+    return FeaturedCourse(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String,
+      instructor: json['instructor'] as String,
+      thumbnailUrl: json['thumbnailUrl'] as String,
+      level: CourseLevel.fromString(json['level'] as String),
+      category: CourseCategory.fromString(json['category'] as String),
+      rating: (json['rating'] as num).toDouble(),
+      enrollmentCount: json['enrollmentCount'] as int,
+      reason: json['reason'] as String?,
+      rank: json['rank'] as int?,
+    );
+  }
+
+  factory FeaturedCourse.fromCourse(
+    Course course, {
+    String? reason,
+    int? rank,
+  }) {
+    return FeaturedCourse(
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      instructor: course.instructor,
+      thumbnailUrl: course.thumbnailUrl,
+      level: course.level,
+      category: course.category,
+      rating: course.rating,
+      enrollmentCount: course.enrollmentCount,
+      reason: reason,
+      rank: rank,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'instructor': instructor,
+      'thumbnailUrl': thumbnailUrl,
+      'level': level.value,
+      'category': category.value,
+      'rating': rating,
+      'enrollmentCount': enrollmentCount,
+      'reason': reason,
+      'rank': rank,
+    };
+  }
+}
+
+/// Topics and departments response
+class TopicsResponse {
   final List<String> departments;
-  final Filters? availableFilters;
+  final List<String> topics;
+  final List<String> levels;
+  final List<String> languages;
+  final Map<String, String> departmentNames;
 
-  factory TopicsResponse.fromJson(Map<String, dynamic> json) => TopicsResponse(
-    topics:
-        (json['topics'] as List<dynamic>?)
-            ?.map((e) => TopicItem.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [],
-    departments:
-        (json['departments'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [],
-    availableFilters: json['availableFilters'] != null
-        ? Filters.fromJson(json['availableFilters'] as Map<String, dynamic>)
-        : null,
-  );
+  TopicsResponse({
+    required this.departments,
+    required this.topics,
+    required this.levels,
+    required this.languages,
+    required this.departmentNames,
+  });
 
-  Map<String, dynamic> toJson() => {
-    'topics': topics.map((t) => t.toJson()).toList(),
-    'departments': departments,
-    if (availableFilters != null)
-      'availableFilters': availableFilters!.toJson(),
-  };
+  factory TopicsResponse.fromJson(Map<String, dynamic> json) {
+    return TopicsResponse(
+      departments: (json['departments'] as List<dynamic>).cast<String>(),
+      topics: (json['topics'] as List<dynamic>).cast<String>(),
+      levels: (json['levels'] as List<dynamic>).cast<String>(),
+      languages: (json['languages'] as List<dynamic>).cast<String>(),
+      departmentNames: Map<String, String>.from(json['departmentNames'] as Map),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'departments': departments,
+      'topics': topics,
+      'levels': levels,
+      'languages': languages,
+      'departmentNames': departmentNames,
+    };
+  }
 }
 
-// -----------------------------------------------------------------------------
-// Health response
-// -----------------------------------------------------------------------------
-
+/// API health check response
 class HealthResponse {
-  HealthResponse({required this.status, required this.timestamp});
-
   final String status;
-  final DateTime timestamp;
+  final String timestamp;
+  final Map<String, dynamic>? info;
 
-  factory HealthResponse.fromJson(Map<String, dynamic> json) => HealthResponse(
-    status: json['status'] as String? ?? 'unknown',
-    timestamp: DateTime.parse(json['timestamp'] as String),
-  );
+  HealthResponse({required this.status, required this.timestamp, this.info});
 
-  Map<String, dynamic> toJson() => {
-    'status': status,
-    'timestamp': timestamp.toIso8601String(),
-  };
+  factory HealthResponse.fromJson(Map<String, dynamic> json) {
+    return HealthResponse(
+      status: json['status'] as String,
+      timestamp: json['timestamp'] as String,
+      info: json['info'] as Map<String, dynamic>?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'status': status, 'timestamp': timestamp, 'info': info};
+  }
 }
-
-// -----------------------------------------------------------------------------
-// End of models
-// -----------------------------------------------------------------------------
-
-// Small usage example (commented):
-//
-// final resp = await http.get(Uri.parse('https://courses-api-1qr7.onrender.com/courses/search'));
-// final model = SearchResponse.fromJson(json.decode(resp.body));
-// print('Found ${model.pagination.total} courses');
-//
-// If you want json_serializable or freezed-compatible versions, tell me and
-// I will generate those annotations & build_runner commands for you.

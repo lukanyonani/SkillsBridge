@@ -397,16 +397,21 @@ class BursaryApiService {
       // 🔍 Only add parameters if they have values
       if (search != null && search.isNotEmpty) queryParams['search'] = search;
       if (field != null && field.isNotEmpty) queryParams['field'] = field;
-      if (province != null && province.isNotEmpty)
+      if (province != null && province.isNotEmpty) {
         queryParams['province'] = province;
-      if (closingMonth != null && closingMonth.isNotEmpty)
+      }
+      if (closingMonth != null && closingMonth.isNotEmpty) {
         queryParams['closing_month'] = closingMonth;
-      if (studyLevel != null && studyLevel.isNotEmpty)
+      }
+      if (studyLevel != null && studyLevel.isNotEmpty) {
         queryParams['study_level'] = studyLevel;
-      if (workBack != null && workBack.isNotEmpty)
+      }
+      if (workBack != null && workBack.isNotEmpty) {
         queryParams['work_back'] = workBack;
-      if (coverageType != null && coverageType.isNotEmpty)
+      }
+      if (coverageType != null && coverageType.isNotEmpty) {
         queryParams['coverage_type'] = coverageType;
+      }
       if (sort != null && sort.isNotEmpty) queryParams['sort'] = sort;
 
       debugPrint('🔍 Fetching bursaries with params: $queryParams');
