@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:skillsbridge/constants/theme.dart';
-import 'package:skillsbridge/views/bursary/btest.dart';
-//import 'package:skillsbridge/views/bursary/bursary_screen.dart';
-import 'package:skillsbridge/views/counsellor/counsellor_screen.dart';
+import 'package:skillsbridge/views/bursary/bursary_screen.dart';
+import 'package:skillsbridge/views/counsellor/councillor_screen.dart';
 import 'package:skillsbridge/views/home/home_screen.dart';
 import 'package:skillsbridge/views/jobs/jobs_screen.dart';
-import 'package:skillsbridge/views/learning/ltest.dart';
+import 'package:skillsbridge/views/learning/learning_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -19,16 +18,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   // Create instances of your screens
   late final List<Widget> _screens;
-
   @override
   void initState() {
     super.initState();
     _screens = [
       HomeScreen(),
-      LearningTesterHubScreen(), // Your existing learning screen
-      AICouncelorScreen(), // Your existing AI counselor screen
+      LearningHubScreen(), // Your existing learning screen
+      AICouncillorScreen(), // Your existing AI counselor screen
       JobPortalScreen(),
-      BursaryFinderTestScreen(), // Your existing bursary screen
+      BursaryFinderScreen(), // Your existing bursary screen
     ];
   }
 
@@ -61,7 +59,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             children: [
               _buildNavItem(Icons.home, 'Home', 0),
               _buildNavItem(Icons.book, 'Learn', 1),
-              _buildNavItem(Icons.smart_toy, 'AI Guide', 2),
+              _buildNavItem(Icons.smart_toy, 'AI Counsellor', 2),
               _buildNavItem(Icons.work, 'Jobs', 3),
               _buildNavItem(Icons.school, 'Bursaries', 4),
             ],

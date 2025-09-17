@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/viewmodels/jobs_screen_vm.dart';
-import 'package:skillsbridge/views/jobs/job_application_screen.dart';
+import 'package:skillsbridge/views/jobs/jobs_detail_screen.dart';
 
-class JobPortalScreen extends StatefulWidget {
+class JobPortalScreen extends ConsumerStatefulWidget {
   const JobPortalScreen({super.key});
 
   @override
-  State<JobPortalScreen> createState() => _JobPortalScreenState();
+  ConsumerState<JobPortalScreen> createState() => _JobPortalScreenState();
 }
 
-class _JobPortalScreenState extends State<JobPortalScreen> {
+class _JobPortalScreenState extends ConsumerState<JobPortalScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late JobsScreenViewModel _viewModel;
 
   @override
   void initState() {
@@ -34,7 +33,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
       // Load more when user scrolls near the bottom
-      final viewModel = context.read<JobsScreenViewModel>();
+      final viewModel = ref.read(jobsScreenViewModelProvider);
       if (viewModel.hasMorePages && !viewModel.isLoadingMore) {
         viewModel.loadMoreJobs();
       }
@@ -43,32 +42,22 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => JobsScreenViewModel(),
-      child: Consumer<JobsScreenViewModel>(
-        builder: (context, viewModel, child) {
-          _viewModel = viewModel;
-          return Scaffold(
-            backgroundColor: const Color(0xFFF9FAFB),
-            body: viewModel.showDetail
-                ? _buildJobDetail(viewModel)
-                : _buildJobList(viewModel),
-          );
-        },
-      ),
+    final viewModel = ref.watch(jobsScreenViewModelProvider);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: _buildJobList(viewModel),
     );
   }
 
   Widget _buildJobList(JobsScreenViewModel viewModel) {
-    return SafeArea(
-      child: Column(
-        children: [
-          _buildTopHeader(viewModel),
-          _buildHeader(viewModel),
-          _buildResultsBar(viewModel),
-          Expanded(child: _buildJobListBody(viewModel)),
-        ],
-      ),
+    return Column(
+      children: [
+        _buildTopHeader(viewModel),
+        _buildHeader(viewModel),
+        _buildResultsBar(viewModel),
+        Expanded(child: _buildJobListBody(viewModel)),
+      ],
     );
   }
 
@@ -277,7 +266,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -325,11 +314,6 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
                       ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => _showDebugInfo(viewModel),
-                child: _buildIconButton('⚙️'),
               ),
             ],
           ),
@@ -573,7 +557,7 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
     final isNew = job['isNew'] == true;
 
     return GestureDetector(
-      onTap: () => viewModel.selectJob(job),
+      onTap: () => _navigateToJobDetail(job),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -797,425 +781,6 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
     );
   }
 
-  // Job Detail View (keeping existing implementation)
-  Widget _buildJobDetail(JobsScreenViewModel viewModel) {
-    if (viewModel.selectedJob == null) return Container();
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          _buildDetailHeader(viewModel),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 18),
-                  _buildDetailBody(viewModel),
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: _buildApplySection(viewModel),
-    );
-  }
-
-  Widget _buildDetailHeader(JobsScreenViewModel viewModel) {
-    final job = viewModel.selectedJob!;
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(
-                      child: Text(
-                        job['logo'] ?? '🏢',
-                        style: const TextStyle(fontSize: 40),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    job['title'] ?? 'Unknown Position',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    job['company'] ?? 'Unknown Company',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 16,
-                    children: [
-                      _buildDetailMetaItem('📍', job['location'] ?? 'Unknown'),
-                      _buildDetailMetaItem(
-                        '💰',
-                        (job['salary'] ?? 'Negotiable').split(' - ')[0],
-                      ),
-                      _buildDetailMetaItem('🏠', job['type'] ?? 'On-site'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: 10,
-              left: 20,
-              child: GestureDetector(
-                onTap: viewModel.goBackToJobList,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailMetaItem(String icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 14, color: Colors.white)),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 14, color: Colors.white)),
-      ],
-    );
-  }
-
-  Widget _buildDetailBody(JobsScreenViewModel viewModel) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDetailSection('About the Role', viewModel.getJobDescription()),
-          const SizedBox(height: 24),
-          _buildRequirementsSection(viewModel),
-          const SizedBox(height: 24),
-          _buildSkillsSection(viewModel),
-          const SizedBox(height: 24),
-          _buildDetailSection('What We Offer', viewModel.getJobBenefits()),
-          const SizedBox(height: 24),
-          _buildSimilarJobs(viewModel),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailSection(String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          content,
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.6,
-            color: Color(0xFF4B5563),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRequirementsSection(JobsScreenViewModel viewModel) {
-    final requirements = viewModel.getJobRequirements();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Requirements',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...requirements.map(
-          (req) => _buildRequirementItem(req['text']!, req['status']!),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRequirementItem(String text, String status) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            margin: const EdgeInsets.only(top: 2),
-            decoration: BoxDecoration(
-              color: status == 'met'
-                  ? const Color(0xFF10B981)
-                  : status == 'partial'
-                  ? const Color(0xFFF59E0B)
-                  : const Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Icon(
-                status == 'met'
-                    ? Icons.check
-                    : status == 'partial'
-                    ? Icons.warning
-                    : Icons.circle_outlined,
-                size: 12,
-                color: status == 'unmet'
-                    ? const Color(0xFF6B7280)
-                    : Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF374151),
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSkillsSection(JobsScreenViewModel viewModel) {
-    final skills = viewModel.getSkillsRequired();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Skills Required',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: skills.map((skill) {
-            final hasSkill = skill['hasSkill'] as bool;
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: hasSkill
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFDBEAFE),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                skill['name'] as String,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: hasSkill ? Colors.white : const Color(0xFF2563EB),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSimilarJobs(JobsScreenViewModel viewModel) {
-    final similarJobs = viewModel.getSimilarJobs();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Similar Jobs',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...similarJobs.map(
-          (job) => GestureDetector(
-            onTap: () {
-              // Could navigate to similar job
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          job['title'] as String,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF111827),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${job['company']} • ${job['location']} • ${job['salary']}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${job['match']}%',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF10B981),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildApplySection(JobsScreenViewModel viewModel) {
-    final isSaved = viewModel.isJobSaved(viewModel.selectedJob?['id']);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(color: const Color(0xFFE5E7EB).withOpacity(0.5)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, -4),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () =>
-                  viewModel.toggleSaveJob(viewModel.selectedJob!['id']),
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: isSaved ? const Color(0xFF2563EB) : Colors.white,
-                  border: Border.all(color: const Color(0xFF2563EB), width: 2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Icon(
-                    isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: isSaved ? Colors.white : const Color(0xFF2563EB),
-                    size: 20,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () => _applyForJob(viewModel),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Apply Now',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // Additional Features
   void _showSortOptions(JobsScreenViewModel viewModel) {
     showModalBottomSheet(
@@ -1335,100 +900,10 @@ class _JobPortalScreenState extends State<JobPortalScreen> {
     );
   }
 
-  void _showDebugInfo(JobsScreenViewModel viewModel) {
-    final debugInfo = viewModel.getDebugInfo();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Debug Info'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: debugInfo.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text('${entry.key}: ${entry.value}'),
-              );
-            }).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              viewModel.testApiConnection();
-            },
-            child: const Text('Test API'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _applyForJob(JobsScreenViewModel viewModel) {
-    final job = viewModel.selectedJob!;
-
+  void _navigateToJobDetail(Map<String, dynamic> job) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => JobApplicationWebView(job: job)),
+      MaterialPageRoute(builder: (context) => JobDetailPage(job: job)),
     );
   }
-
-  // void _applyForJob(JobsScreenViewModel viewModel) {
-  //   final job = viewModel.selectedJob!;
-
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('Apply for Job'),
-  //       content: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Text('Position: ${job['title']}'),
-  //           Text('Company: ${job['company']}'),
-  //           const SizedBox(height: 16),
-  //           const Text(
-  //             'This would normally open the application process or redirect to the company\'s website.',
-  //           ),
-  //         ],
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text('Cancel'),
-  //         ),
-  //         ElevatedButton(
-  //           onPressed: () {
-  //             Navigator.pop(context);
-  //             ScaffoldMessenger.of(context).showSnackBar(
-  //               SnackBar(
-  //                 content: Text(
-  //                   'Applied for ${job['title']} at ${job['company']}',
-  //                 ),
-  //                 backgroundColor: const Color(0xFF10B981),
-  //                 action: SnackBarAction(
-  //                   label: 'View',
-  //                   textColor: Colors.white,
-  //                   onPressed: () {},
-  //                 ),
-  //               ),
-  //             );
-  //           },
-  //           style: ElevatedButton.styleFrom(
-  //             backgroundColor: const Color(0xFF2563EB),
-  //             foregroundColor: Colors.white,
-  //           ),
-  //           child: const Text('Apply'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 }

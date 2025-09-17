@@ -183,7 +183,7 @@ class Lesson {
   String get formattedDuration {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
-    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   factory Lesson.fromJson(Map<String, dynamic> json) {

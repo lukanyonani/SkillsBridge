@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skillsbridge/constants/theme.dart';
 import 'package:skillsbridge/views/splash_screen.dart';
 
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(
-    ProviderScope(
-      // 👈 Needed for Riverpod
-      child: MyApp(),
-    ),
-  );
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -22,8 +18,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Skills Bridge',
-      theme: ThemeData(colorScheme: ColorScheme.light()),
+      title: 'SkillsBridge',
+      theme: AppTheme.lightTheme,
       home: SplashScreen(),
     );
   }

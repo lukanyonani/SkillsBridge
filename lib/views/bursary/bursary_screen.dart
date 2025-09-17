@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/models/bursary_models.dart';
-import 'package:skillsbridge/viewmodels/bursary_screen_vm.dart'; // Import the provider
+import 'package:skillsbridge/viewmodels/bursary_screen_vm.dart';
+import 'package:skillsbridge/views/bursary/bursary_detail_screen.dart'; // Import the provider
 
 class BursaryFinderScreen extends ConsumerStatefulWidget {
   const BursaryFinderScreen({super.key});
@@ -49,39 +50,37 @@ class _BursaryFinderScreenState extends ConsumerState<BursaryFinderScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(state, notifier),
-            if (state.errorMessage != null) _buildErrorBanner(state, notifier),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: notifier.refreshBursaries,
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Column(
-                    children: [
-                      _buildSearchSection(notifier),
-                      _buildFiltersSection(state, notifier),
-                      if (state.urgentBursariesCount > 0)
-                        _buildDeadlineAlert(state, notifier),
-                      _buildResultsBar(state, notifier),
-                      if (state.isLoading && state.bursaryList.isEmpty)
-                        _buildLoadingState()
-                      else if (state.bursaryList.isEmpty)
-                        _buildEmptyState(notifier)
-                      else
-                        _buildBursaryList(state, notifier),
-                      if (state.isLoadingMore && state.bursaryList.isNotEmpty)
-                        _buildLoadingMore(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+      body: Column(
+        children: [
+          _buildHeader(state, notifier),
+          if (state.errorMessage != null) _buildErrorBanner(state, notifier),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: notifier.refreshBursaries,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  children: [
+                    _buildSearchSection(notifier),
+                    _buildFiltersSection(state, notifier),
+                    if (state.urgentBursariesCount > 0)
+                      _buildDeadlineAlert(state, notifier),
+                    _buildResultsBar(state, notifier),
+                    if (state.isLoading && state.bursaryList.isEmpty)
+                      _buildLoadingState()
+                    else if (state.bursaryList.isEmpty)
+                      _buildEmptyState(notifier)
+                    else
+                      _buildBursaryList(state, notifier),
+                    if (state.isLoadingMore && state.bursaryList.isNotEmpty)
+                      _buildLoadingMore(),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -98,7 +97,7 @@ class _BursaryFinderScreenState extends ConsumerState<BursaryFinderScreen> {
           end: Alignment.bottomRight,
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 90, 20, 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -700,7 +699,14 @@ class _BursaryFinderScreenState extends ConsumerState<BursaryFinderScreen> {
         : 'Multiple fields';
 
     return GestureDetector(
-      onTap: () => _showBursaryDetail(bursary, notifier),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BursaryDetailPage(bursary: bursary),
+          ),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         child: ClipRRect(

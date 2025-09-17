@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/data/bursary_api.dart';
 import 'package:skillsbridge/data/jobs_api.dart';
+import 'package:skillsbridge/views/jobs/jobs_detail_screen.dart';
+import 'package:skillsbridge/views/bursary/bursary_detail_screen.dart';
+import 'package:skillsbridge/views/learning/course_detail_screen.dart';
+import 'package:skillsbridge/models/bursary_models.dart' as bursary_models;
+import 'package:skillsbridge/models/course_models.dart';
 
 // State class that holds all the home screen data
 class HomeScreenState {
@@ -20,7 +25,7 @@ class HomeScreenState {
       'coursesAvailable': 0,
       'jobsAvailable': 0,
       'bursariesAvailable': 0,
-      'applications': 5,
+      'applications': 25,
     },
     this.currentCourse = const {
       'title': 'Python for Data Science',
@@ -29,55 +34,8 @@ class HomeScreenState {
       'progress': 0.65,
       'icon': '🐍',
     },
-    this.recommendedJobs = const [
-      {
-        'companyLogo': '🏢',
-        'jobTitle': 'Junior Data Analyst',
-        'companyName': 'TechCorp SA',
-        'location': '📍 Cape Town',
-        'salary': '💰 R15-20k',
-        'workType': '🏠 Hybrid',
-        'matchPercentage': '85%',
-      },
-      {
-        'companyLogo': '🏦',
-        'jobTitle': 'IT Support Intern',
-        'companyName': 'First National Bank',
-        'location': '📍 Johannesburg',
-        'salary': '💰 R8-12k',
-        'workType': '🏢 On-site',
-        'matchPercentage': '78%',
-      },
-      {
-        'companyLogo': '💻',
-        'jobTitle': 'Web Developer',
-        'companyName': 'Digital Dreams',
-        'location': '📍 Remote',
-        'salary': '💰 R18-25k',
-        'workType': '🌍 Remote',
-        'matchPercentage': '72%',
-      },
-    ],
-    this.upcomingDeadlines = const [
-      {
-        'title': 'NSFAS Application',
-        'amount': 'Up to R90,000',
-        'deadline': '⏰ Closes in 2 days',
-        'isUrgent': true,
-      },
-      {
-        'title': 'MTN Tech Scholarship',
-        'amount': 'R50,000',
-        'deadline': '⏰ Closes in 5 days',
-        'isUrgent': false,
-      },
-      {
-        'title': 'Google Career Certificates',
-        'amount': 'Full Funding',
-        'deadline': '⏰ Closes in 10 days',
-        'isUrgent': false,
-      },
-    ],
+    this.recommendedJobs = const [],
+    this.upcomingDeadlines = const [],
     this.isLoading = false,
   });
 
@@ -137,6 +95,8 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
   void initialize() {
     _updateGreeting();
     fetchTotalCounts();
+    refreshRecommendedJobs();
+    refreshUpcomingDeadlines();
     debugPrint('🏠 Home screen initialized');
   }
 
@@ -280,29 +240,176 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
     // You can add navigation logic here
   }
 
-  void onContinueCourseTapped() {
+  void onContinueCourseTapped(BuildContext context) {
     debugPrint('Continue course tapped: ${state.currentCourse['title']}');
-    // Navigate to course details or resume course
+    // Create a sample course for navigation
+    final sampleCourse = Course(
+      id: '1',
+      title: state.currentCourse['title'],
+      description:
+          'Continue your learning journey with this comprehensive course.',
+      instructor: 'SkillsBridge Team',
+      thumbnailUrl: 'https://example.com/thumbnail.jpg',
+      rating: 4.5,
+      enrollmentCount: 1250,
+      level: CourseLevel.beginner,
+      category: CourseCategory.programming,
+      pricing: CoursePricing(type: PricingType.free, amount: 0),
+      totalDuration: const Duration(hours: 30),
+      lessons: const [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      reviewCount: 150,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CourseDetailScreen(course: sampleCourse),
+      ),
+    );
   }
 
-  void onJobCardTapped(Map<String, dynamic> job) {
+  void onJobCardTapped(BuildContext context, Map<String, dynamic> job) {
     debugPrint('Job tapped: ${job['jobTitle']} at ${job['companyName']}');
-    // Navigate to job details
+
+    // Convert home screen job format to jobs detail screen format
+    final jobDetail = {
+      'id': (job['jobTitle'] ?? 'Unknown').hashCode.toString(),
+      'title': job['jobTitle'] ?? 'Unknown Position',
+      'company': job['companyName'] ?? 'Unknown Company',
+      'location': (job['location'] ?? 'Unknown').toString().replaceAll(
+        '📍 ',
+        '',
+      ),
+      'salary': (job['salary'] ?? 'Negotiable').toString().replaceAll(
+        '💰 ',
+        '',
+      ),
+      'type': (job['workType'] ?? 'On-site')
+          .toString()
+          .replaceAll('🌍 ', '')
+          .replaceAll('🏠 ', '')
+          .replaceAll('🏢 ', ''),
+      'logo': job['companyLogo'] ?? '🏢',
+      'url': 'https://example.com/apply',
+      'description':
+          'This is a great opportunity to work with a leading company in the industry. You will be responsible for various tasks and will have the chance to grow your career.',
+      'matchScore':
+          int.tryParse(
+            (job['matchPercentage'] ?? '75%').toString().replaceAll('%', ''),
+          ) ??
+          75,
+    };
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => JobDetailPage(job: jobDetail)),
+    );
   }
 
-  void onBursaryCardTapped(Map<String, dynamic> bursary) {
+  void onBursaryCardTapped(BuildContext context, Map<String, dynamic> bursary) {
     debugPrint('Bursary tapped: ${bursary['title']}');
-    // Navigate to bursary details or application
+
+    // Create a sample bursary for navigation
+    final sampleBursary = bursary_models.Bursary(
+      id: (bursary['title'] ?? 'Unknown').hashCode.toString(),
+      title: bursary['title'] ?? 'Unknown Bursary',
+      provider: bursary_models.Provider(
+        name: 'Sample Provider',
+        website: 'https://example.com',
+      ),
+      coverage: bursary_models.Coverage(
+        type: 'Full',
+        amount: _parseAmount(bursary['amount']),
+        covers: ['Tuition fees', 'Accommodation', 'Books and materials'],
+      ),
+      deadline: bursary_models.Deadline(
+        displayText: (bursary['deadline'] ?? 'Unknown deadline')
+            .toString()
+            .replaceAll('⏰ ', ''),
+        isUrgent: bursary['isUrgent'] ?? false,
+        closingDate: DateTime.now()
+            .add(const Duration(days: 30))
+            .toIso8601String(),
+      ),
+      studyLevel: 'Undergraduate',
+      academicYear: '2024',
+      fields: ['Technology', 'Engineering', 'Business'],
+      numberOfBursaries: 10,
+      eligibility: bursary_models.Eligibility(
+        citizenship: 'South African',
+        maxAge: 25,
+        qualifications: ['Matric', 'University entrance'],
+      ),
+      applicationProcess: bursary_models.ApplicationProcess(
+        method: 'Online Application',
+        steps: ['Complete application form', 'Submit documents', 'Interview'],
+        applicationUrl: 'https://example.com/apply',
+      ),
+      requiredDocuments: ['ID Copy', 'Matric Certificate', 'Proof of Income'],
+      selectionProcess: bursary_models.SelectionProcess(
+        timeframe: '2-4 weeks',
+        priorityPolicy: 'Merit-based',
+        noResponseMeansRejection: true,
+      ),
+      workBackObligation: bursary_models.WorkBackObligation(
+        required: false,
+        duration: null,
+        department: null,
+        additionalBenefits: [],
+      ),
+      tags: ['New', 'Popular'],
+      scraped: bursary_models.ScrapedInfo(
+        lastUpdated: DateTime.now().toIso8601String(),
+        sourceUrl: 'https://example.com/source',
+        scrapedAt: DateTime.now().toIso8601String(),
+      ),
+      isSaved: false,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BursaryDetailPage(bursary: sampleBursary),
+      ),
+    );
   }
 
-  void onApplyNowTapped(String bursaryTitle) {
+  void onApplyNowTapped(BuildContext context, String bursaryTitle) {
     debugPrint('Apply now tapped for: $bursaryTitle');
-    // Navigate to application form or show success message
+    // Find the bursary and navigate to detail screen
+    final bursary = state.upcomingDeadlines.firstWhere(
+      (b) => b['title'] == bursaryTitle,
+      orElse: () => state.upcomingDeadlines.isNotEmpty
+          ? state.upcomingDeadlines.first
+          : <String, dynamic>{},
+    );
+    onBursaryCardTapped(context, bursary);
   }
 
   void onSeeAllTapped(String section) {
     debugPrint('See all tapped for: $section');
     // Navigate to respective section's full view
+  }
+
+  // Helper method to parse amount from various formats
+  int? _parseAmount(dynamic amount) {
+    if (amount == null) return null;
+
+    String amountStr = amount.toString();
+    if (amountStr.toLowerCase().contains('full funding')) {
+      return 100000;
+    }
+
+    // Remove common prefixes and suffixes
+    amountStr = amountStr
+        .replaceAll('R', '')
+        .replaceAll(',', '')
+        .replaceAll('Up to ', '')
+        .replaceAll(' ', '');
+
+    return int.tryParse(amountStr);
   }
 
   // Data refresh methods with real API integration
@@ -385,9 +492,7 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
             .map(
               (bursary) => {
                 'title': bursary.title,
-                'amount': bursary.amount.isNotEmpty == true
-                    ? bursary.amount
-                    : 'Amount not specified',
+                'amount': bursary.amount,
                 'deadline': '⏰ ${_formatDeadline(bursary.daysLeft)}',
                 'isUrgent': bursary.isUrgent,
               },

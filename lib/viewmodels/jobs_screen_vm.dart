@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/data/jobs_api.dart';
+
+// Provider for the API service
+final jobsApiServiceProvider = Provider<CareerJetApiService>((ref) {
+  return CareerJetApiService();
+});
+
+// Main ViewModel Provider
+final jobsScreenViewModelProvider =
+    ChangeNotifierProvider.autoDispose<JobsScreenViewModel>((ref) {
+      return JobsScreenViewModel();
+    });
 
 class JobsScreenViewModel extends ChangeNotifier {
   // 🎯 CORE STATE MANAGEMENT
@@ -16,8 +28,6 @@ class JobsScreenViewModel extends ChangeNotifier {
   // Managing user interactions and selections
   final Set<String> _activeFilters = {}; // Start with no filters
   final Set<int> _savedJobs = {}; // Saved job IDs
-  bool _showDetail = false;
-  Map<String, dynamic>? _selectedJob;
 
   // 📡 API & LOADING STATE
   // Critical for managing API calls and user experience
@@ -25,7 +35,6 @@ class JobsScreenViewModel extends ChangeNotifier {
   bool _isLoadingMore = false; // Shows loading for pagination
   String? _errorMessage; // Displays API errors to user
   List<Map<String, dynamic>> _jobs = []; // Real job data from API
-  CareerJetResponse? _lastApiResponse; // Cache last API response
 
   // 🎛️ GETTERS - Public API for UI Components
   // These provide access to our private state for the UI
@@ -38,8 +47,6 @@ class JobsScreenViewModel extends ChangeNotifier {
   int get totalPages => _totalPages;
   Set<String> get activeFilters => _activeFilters;
   Set<int> get savedJobs => _savedJobs;
-  bool get showDetail => _showDetail;
-  Map<String, dynamic>? get selectedJob => _selectedJob;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   String? get errorMessage => _errorMessage;
@@ -68,10 +75,6 @@ class JobsScreenViewModel extends ChangeNotifier {
     'Internship', // Learning opportunities
     'Contract', // Short-term positions
     'This Week', // Recently posted
-    'Easy Apply', // Simple application process
-    'New Jobs', // Latest opportunities
-    'Tech Jobs', // Technology sector
-    'High Salary', // Well-paying positions
   ];
 
   // 📊 SORT OPTIONS
@@ -345,7 +348,6 @@ class JobsScreenViewModel extends ChangeNotifier {
         debugPrint('📄 Current page: ${response.page}/${response.pages}');
 
         // 🔄 Process the response
-        _lastApiResponse = response;
         _jobsCount = response.hits;
         _currentPage = response.page;
         _totalPages = response.pages;
@@ -607,7 +609,6 @@ class JobsScreenViewModel extends ChangeNotifier {
         case 'Tech Jobs':
           String title = job['title']?.toLowerCase() ?? '';
           String description = job['description']?.toLowerCase() ?? '';
-          String company = job['company']?.toLowerCase() ?? '';
           List<String> tags = (job['tags'] as List<String>? ?? [])
               .map((tag) => tag.toLowerCase())
               .toList();
@@ -844,24 +845,6 @@ class JobsScreenViewModel extends ChangeNotifier {
     return _jobs.where((job) => _savedJobs.contains(job['id'])).toList();
   }
 
-  // 🔍 JOB DETAIL MANAGEMENT
-
-  /// 👁️ Select job for detailed view
-  void selectJob(Map<String, dynamic> job) {
-    debugPrint('👁️ User selected job: ${job['title']} at ${job['company']}');
-    _selectedJob = job;
-    _showDetail = true;
-    notifyListeners();
-  }
-
-  /// ⬅️ Go back to job list
-  void goBackToJobList() {
-    debugPrint('⬅️ User returned to job list');
-    _showDetail = false;
-    _selectedJob = null;
-    notifyListeners();
-  }
-
   // 🎯 FILTER UTILITIES
 
   /// ✅ Check if filter is active
@@ -945,11 +928,221 @@ class JobsScreenViewModel extends ChangeNotifier {
         .toList();
   }
 
-  /// ✅ Get job requirements (enhanced with real data)
-  List<Map<String, String>> getJobRequirements() {
-    debugPrint('📋 Generating job requirements analysis...');
+  /// ✅ Get job requirements (extracted from actual job description)
+  List<Map<String, String>> getJobRequirements(Map<String, dynamic> job) {
+    debugPrint('📋 Extracting job requirements from description...');
 
-    // These would ideally come from job description analysis
+    final description = job['description']?.toLowerCase() ?? '';
+    final title = job['title']?.toLowerCase() ?? '';
+    final requirements = <Map<String, String>>[];
+
+    // Extract education requirements
+    if (description.contains('degree') ||
+        description.contains('diploma') ||
+        description.contains('qualification')) {
+      requirements.add({
+        'text': _extractEducationRequirement(description),
+        'status': 'met', // Assume user has basic education
+      });
+    }
+
+    // Extract experience requirements
+    final experienceReq = _extractExperienceRequirement(description);
+    if (experienceReq.isNotEmpty) {
+      requirements.add({
+        'text': experienceReq,
+        'status': _assessExperienceMatch(experienceReq),
+      });
+    }
+
+    // Extract technical skills
+    final techSkills = _extractTechnicalSkills(description, title);
+    for (final skill in techSkills) {
+      requirements.add({'text': skill, 'status': _assessSkillMatch(skill)});
+    }
+
+    // Extract soft skills
+    final softSkills = _extractSoftSkills(description);
+    for (final skill in softSkills) {
+      requirements.add({
+        'text': skill,
+        'status': 'met', // Assume user has basic soft skills
+      });
+    }
+
+    // Extract location/visa requirements
+    if (description.contains('south africa') ||
+        description.contains('citizenship') ||
+        description.contains('work permit')) {
+      requirements.add({
+        'text': 'South African citizenship or valid work permit',
+        'status': 'met',
+      });
+    }
+
+    return requirements.isNotEmpty ? requirements : _getDefaultRequirements();
+  }
+
+  String _extractEducationRequirement(String description) {
+    if (description.contains('bachelor') || description.contains('degree')) {
+      return 'Bachelor\'s degree in Computer Science, IT, or related field';
+    } else if (description.contains('diploma')) {
+      return 'Diploma in Computer Science, IT, or related field';
+    } else if (description.contains('matric') ||
+        description.contains('grade 12')) {
+      return 'Matric certificate or equivalent';
+    }
+    return 'Relevant qualification in Computer Science, IT, or related field';
+  }
+
+  String _extractExperienceRequirement(String description) {
+    final experiencePatterns = [
+      r'(\d+)\+?\s*years?\s*experience',
+      r'(\d+)\+?\s*years?\s*in\s*',
+      r'minimum\s*(\d+)\s*years?',
+      r'at\s*least\s*(\d+)\s*years?',
+    ];
+
+    for (final pattern in experiencePatterns) {
+      final regex = RegExp(pattern, caseSensitive: false);
+      final match = regex.firstMatch(description);
+      if (match != null) {
+        final years = match.group(1);
+        return 'Minimum $years years of relevant experience';
+      }
+    }
+
+    if (description.contains('senior') || description.contains('lead')) {
+      return '5+ years of relevant experience';
+    } else if (description.contains('mid') ||
+        description.contains('intermediate')) {
+      return '2-5 years of relevant experience';
+    } else if (description.contains('junior') ||
+        description.contains('entry')) {
+      return '0-2 years of relevant experience';
+    }
+
+    return '';
+  }
+
+  List<String> _extractTechnicalSkills(String description, String title) {
+    final skills = <String>[];
+    final content = '$description $title'.toLowerCase();
+
+    final skillMap = {
+      'javascript': 'JavaScript programming',
+      'python': 'Python programming',
+      'java': 'Java programming',
+      'react': 'React framework',
+      'angular': 'Angular framework',
+      'vue': 'Vue.js framework',
+      'node': 'Node.js development',
+      'sql': 'SQL database knowledge',
+      'mongodb': 'MongoDB database',
+      'aws': 'Amazon Web Services',
+      'azure': 'Microsoft Azure',
+      'docker': 'Docker containerization',
+      'kubernetes': 'Kubernetes orchestration',
+      'git': 'Git version control',
+      'agile': 'Agile methodology',
+      'scrum': 'Scrum framework',
+      'html': 'HTML markup',
+      'css': 'CSS styling',
+      'flutter': 'Flutter development',
+      'dart': 'Dart programming',
+      'typescript': 'TypeScript programming',
+      'php': 'PHP programming',
+      'c#': 'C# programming',
+      '.net': '.NET framework',
+      'spring': 'Spring framework',
+      'express': 'Express.js framework',
+      'mysql': 'MySQL database',
+      'postgresql': 'PostgreSQL database',
+      'redis': 'Redis caching',
+      'elasticsearch': 'Elasticsearch search',
+      'kafka': 'Apache Kafka messaging',
+      'microservices': 'Microservices architecture',
+      'rest': 'REST API development',
+      'graphql': 'GraphQL API development',
+      'jwt': 'JWT authentication',
+      'oauth': 'OAuth authentication',
+      'ci/cd': 'CI/CD pipeline knowledge',
+      'jenkins': 'Jenkins automation',
+      'terraform': 'Terraform infrastructure',
+      'linux': 'Linux administration',
+      'windows': 'Windows administration',
+    };
+
+    for (final entry in skillMap.entries) {
+      if (content.contains(entry.key)) {
+        skills.add(entry.value);
+      }
+    }
+
+    return skills.take(5).toList(); // Limit to 5 most relevant skills
+  }
+
+  List<String> _extractSoftSkills(String description) {
+    final skills = <String>[];
+    final content = description.toLowerCase();
+
+    final softSkillMap = {
+      'communication': 'Excellent communication skills',
+      'teamwork': 'Strong teamwork abilities',
+      'problem solving': 'Problem-solving skills',
+      'analytical': 'Analytical thinking',
+      'leadership': 'Leadership qualities',
+      'time management': 'Time management skills',
+      'attention to detail': 'Attention to detail',
+      'adaptability': 'Adaptability and flexibility',
+      'creativity': 'Creative thinking',
+      'initiative': 'Self-motivation and initiative',
+    };
+
+    for (final entry in softSkillMap.entries) {
+      if (content.contains(entry.key)) {
+        skills.add(entry.value);
+      }
+    }
+
+    return skills.take(3).toList(); // Limit to 3 most relevant soft skills
+  }
+
+  String _assessExperienceMatch(String requirement) {
+    // This is a simplified assessment - in a real app, you'd compare against user profile
+    if (requirement.contains('0-2') ||
+        requirement.contains('junior') ||
+        requirement.contains('entry')) {
+      return 'met';
+    } else if (requirement.contains('2-5') || requirement.contains('mid')) {
+      return 'partial';
+    } else if (requirement.contains('5+') || requirement.contains('senior')) {
+      return 'unmet';
+    }
+    return 'partial';
+  }
+
+  String _assessSkillMatch(String skill) {
+    // This is a simplified assessment - in a real app, you'd compare against user skills
+    final commonSkills = [
+      'javascript',
+      'html',
+      'css',
+      'git',
+      'problem solving',
+      'communication',
+    ];
+    final skillLower = skill.toLowerCase();
+
+    for (final commonSkill in commonSkills) {
+      if (skillLower.contains(commonSkill)) {
+        return 'met';
+      }
+    }
+    return 'partial';
+  }
+
+  List<Map<String, String>> _getDefaultRequirements() {
     return [
       {
         'text': 'Bachelor\'s degree in Computer Science, IT, or related field',
@@ -977,11 +1170,38 @@ class JobsScreenViewModel extends ChangeNotifier {
     ];
   }
 
-  /// 🛠️ Get required skills analysis
-  List<Map<String, dynamic>> getSkillsRequired() {
-    debugPrint('🛠️ Analyzing skill requirements...');
+  /// 🛠️ Get required skills analysis (extracted from actual job description)
+  List<Map<String, dynamic>> getSkillsRequired(Map<String, dynamic> job) {
+    debugPrint('🛠️ Analyzing skill requirements from job description...');
 
-    // In a real app, this would analyze the job description
+    final description = job['description']?.toLowerCase() ?? '';
+    final title = job['title']?.toLowerCase() ?? '';
+
+    final skills = <Map<String, dynamic>>[];
+
+    // Extract technical skills from job description
+    final techSkills = _extractTechnicalSkills(description, title);
+    for (final skill in techSkills) {
+      skills.add({
+        'name': skill,
+        'hasSkill': _assessSkillMatch(skill) == 'met',
+      });
+    }
+
+    // Extract soft skills
+    final softSkills = _extractSoftSkills(description);
+    for (final skill in softSkills) {
+      skills.add({
+        'name': skill,
+        'hasSkill': true, // Assume user has basic soft skills
+      });
+    }
+
+    // If no skills found, return default skills
+    return skills.isNotEmpty ? skills : _getDefaultSkills();
+  }
+
+  List<Map<String, dynamic>> _getDefaultSkills() {
     return [
       {'name': 'JavaScript', 'hasSkill': true},
       {'name': 'HTML/CSS', 'hasSkill': true},
@@ -995,9 +1215,9 @@ class JobsScreenViewModel extends ChangeNotifier {
   }
 
   /// 📝 Get job description
-  String getJobDescription() {
-    if (_selectedJob != null && _selectedJob!['description'] != null) {
-      return _selectedJob!['description'];
+  String getJobDescription(Map<String, dynamic> job) {
+    if (job['description'] != null) {
+      return job['description'];
     }
 
     // Fallback description

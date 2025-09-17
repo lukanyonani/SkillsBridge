@@ -766,7 +766,7 @@ class BursaryApiService {
         daysLeft: daysLeft,
         isUrgent: daysLeft <= 7,
         field: b.fields.isNotEmpty ? b.fields.first : '',
-        amount: b.coverage.amount ?? '',
+        amount: b.coverage.amount ?? 0,
       );
     }).toList();
 

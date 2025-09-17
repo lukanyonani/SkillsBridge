@@ -134,14 +134,14 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                 child: Opacity(
                   opacity: 0.1,
                   child: Container(
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(
-                          'assets/pattern.png',
-                        ), // Add your pattern
-                        repeat: ImageRepeat.repeat,
-                      ),
-                    ),
+                    // decoration: const BoxDecoration(
+                    //   image: DecorationImage(
+                    //     image: AssetImage(
+                    //       'assets/pattern.png',
+                    //     ), // Add your pattern
+                    //     repeat: ImageRepeat.repeat,
+                    //   ),
+                    // ),
                   ),
                 ),
               ),

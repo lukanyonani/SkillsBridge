@@ -42,7 +42,7 @@ class Provider {
 // 💰 Coverage Model - What expenses are covered?
 class Coverage {
   final String type; // "full" or "partial"
-  final String? amount;
+  final int? amount;
   final List<String> covers;
 
   Coverage({required this.type, this.amount, required this.covers});
@@ -504,7 +504,7 @@ class ClosingSoonItem {
   final int daysLeft;
   final bool isUrgent;
   final String field;
-  final String amount;
+  final int amount;
 
   ClosingSoonItem({
     required this.id,

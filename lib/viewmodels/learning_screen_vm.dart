@@ -122,7 +122,7 @@ class LearningHubViewModel extends ChangeNotifier {
   }
 
   List<Course> get popularCourses {
-    return _courses.take(4).toList();
+    return _courses.take(10).toList();
   }
 
   List<Course> get allCourses => _courses;

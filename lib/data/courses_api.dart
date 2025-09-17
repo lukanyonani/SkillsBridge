@@ -416,14 +416,18 @@ class CoursesApiService {
   }
 
   String _getFeaturedReason(Course course) {
-    if (course.id == '18.06')
+    if (course.id == '18.06') {
       return 'Legendary mathematics course by Prof. Gilbert Strang';
-    if (course.id == '6.0001')
+    }
+    if (course.id == '6.0001') {
       return 'Perfect introduction to programming and computer science';
-    if (course.id == '15.S12')
+    }
+    if (course.id == '15.S12') {
       return 'Cutting-edge course on blockchain technology';
-    if (course.id == '18.065')
+    }
+    if (course.id == '18.065') {
       return 'Advanced linear algebra for modern applications';
+    }
     return 'Highly rated course with excellent content';
   }
 

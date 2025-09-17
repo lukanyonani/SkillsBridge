@@ -444,7 +444,11 @@ class BursaryFinderNotifier extends StateNotifier<BursaryFinderState> {
         );
         fetched = fetched.where((b) {
           final amtStr =
-              b.coverage.amount?.replaceAll('R', '').replaceAll(',', '') ?? '0';
+              b.coverage.amount
+                  ?.toString()
+                  .replaceAll('R', '')
+                  .replaceAll(',', '') ??
+              '0';
           final amt = double.tryParse(amtStr) ?? 0;
           return amt >= state.currentAmount;
         }).toList();
