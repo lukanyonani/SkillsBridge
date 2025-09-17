@@ -129,7 +129,7 @@ class _SplashScreenState extends State<SplashScreen>
     _slideController.forward();
 
     // Navigate after total duration
-    Timer(const Duration(seconds: 4), () {
+    Timer(const Duration(seconds: 3), () {
       _navigateToOnboarding();
     });
   }
@@ -213,7 +213,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
 
             // Floating particles
-            _buildFloatingParticles(),
+            //_buildFloatingParticles(),
           ],
         ),
       ),
@@ -411,15 +411,15 @@ class SplashBackgroundPainter extends CustomPainter {
     // Create flowing waves
     final Path wavePath = Path();
     for (int wave = 0; wave < 2; wave++) {
-      final double waveY = size.height * (0.3 + wave * 0.4);
-      wavePath.moveTo(0, waveY);
+      // final double waveY = size.height * (0.3 + wave * 0.4);
+      // wavePath.moveTo(0, waveY);
 
-      for (double x = 0; x <= size.width; x += 20) {
-        final double y =
-            waveY +
-            20 * math.sin((x / 60 + animationValue * 2) * math.pi + wave);
-        wavePath.lineTo(x, y);
-      }
+      // for (double x = 0; x <= size.width; x += 20) {
+      //   final double y =
+      //       waveY +
+      //       20 * math.sin((x / 60 + animationValue * 2) * math.pi + wave);
+      //   wavePath.lineTo(x, y);
+      // }
     }
 
     canvas.drawPath(wavePath, strokePaint);

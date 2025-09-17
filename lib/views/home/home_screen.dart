@@ -204,8 +204,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF2563EB).withOpacity(0.9),
-                const Color(0xFF3B82F6).withOpacity(0.8),
+                const Color(0xFF2563EB).withValues(alpha: 0.9),
+                const Color(0xFF3B82F6).withValues(alpha: 0.8),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -304,8 +304,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                             'Ready to continue your journey?',
                                             style: TextStyle(
                                               fontSize: 14,
-                                              color: Colors.white.withOpacity(
-                                                0.9,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.9,
                                               ),
                                             ),
                                           ),
@@ -369,7 +369,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 width: 20 + (index % 3 * 10),
                 height: 20 + (index % 3 * 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(index % 2 == 0 ? 0 : 10),
                 ),
               ),
@@ -405,7 +405,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 15,
                         offset: const Offset(0, 5),
                       ),
@@ -524,7 +524,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -662,7 +662,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               '${homeState.currentCourse['module']} • ${homeState.currentCourse['timeLeft']}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: const Color(0xFF4B5563).withOpacity(0.8),
+                                color: const Color(
+                                  0xFF4B5563,
+                                ).withValues(alpha: 0.8),
                               ),
                             ),
                           ],
@@ -690,7 +692,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         '${homeState.getProgressPercentage()} Complete',
                         style: TextStyle(
                           fontSize: 12,
-                          color: const Color(0xFF4B5563).withOpacity(0.8),
+                          color: const Color(0xFF4B5563).withValues(alpha: 0.8),
                         ),
                       ),
                       const Text(
@@ -1092,7 +1094,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: bursary['isUrgent']
-                ? const Color(0xFFEF4444).withOpacity(0.3)
+                ? const Color(0xFFEF4444).withValues(alpha: 0.3)
                 : const Color(0xFFE5E7EB),
           ),
         ),
@@ -1261,11 +1263,11 @@ class FloatingParticlesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()
-      ..color = const Color(0xFF2563EB).withOpacity(0.02)
+      ..color = const Color(0xFF2563EB).withValues(alpha: 0.02)
       ..style = PaintingStyle.fill;
 
     final Paint strokePaint = Paint()
-      ..color = const Color(0xFF3B82F6).withOpacity(0.03)
+      ..color = const Color(0xFF3B82F6).withValues(alpha: 0.03)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 

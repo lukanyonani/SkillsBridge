@@ -25,7 +25,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late AnimationController _buttonController;
   late AnimationController _backgroundController;
   late AnimationController _colorController;
-  late AnimationController _rippleController;
 
   // Animations
   late Animation<Offset> _slideAnimation;
@@ -34,7 +33,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late Animation<double> _floatingAnimation;
   late Animation<double> _particleAnimation;
   late Animation<double> _buttonScaleAnimation;
-  late Animation<double> _backgroundAnimation;
   late Animation<double> _colorAnimation;
 
   final List<OnboardingPage> _pages = [
@@ -139,10 +137,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(milliseconds: 12000),
       vsync: this,
     );
-    _backgroundAnimation = CurvedAnimation(
-      parent: _backgroundController,
-      curve: Curves.linear,
-    );
 
     // Color transition animation
     _colorController = AnimationController(
@@ -190,7 +184,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _buttonController.dispose();
     _backgroundController.dispose();
     _colorController.dispose();
-    _rippleController.dispose();
     super.dispose();
   }
 
@@ -333,8 +326,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          colors[index % 2].withOpacity(0.3),
-                          accentColors[index % 2].withOpacity(0.2),
+                          colors[index % 2].withValues(alpha: 0.3),
+                          accentColors[index % 2].withValues(alpha: 0.2),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(
@@ -342,7 +335,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: colors[index % 2].withOpacity(0.4),
+                          color: colors[index % 2].withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: Offset(
                             2 * math.sin(animation * 2 * math.pi),
@@ -405,15 +398,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.9),
-                            Colors.white.withOpacity(0.7),
+                            Colors.white.withValues(alpha: 0.9),
+                            Colors.white.withValues(alpha: 0.7),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
                             color: _pages[_currentPage].particleColor
-                                .withOpacity(0.2),
+                                .withValues(alpha: 0.2),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -439,10 +432,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -482,14 +475,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     ? LinearGradient(colors: _pages[_currentPage].gradient)
                     : null,
                 color: _currentPage != index
-                    ? Colors.white.withOpacity(0.4)
+                    ? Colors.white.withValues(alpha: 0.4)
                     : null,
                 borderRadius: BorderRadius.circular(5),
                 boxShadow: _currentPage == index
                     ? [
                         BoxShadow(
-                          color: _pages[_currentPage].particleColor.withOpacity(
-                            0.4,
+                          color: _pages[_currentPage].particleColor.withValues(
+                            alpha: 0.4,
                           ),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
@@ -505,26 +498,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildPage(OnboardingPage page) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight:
-                MediaQuery.of(context).size.height -
-                MediaQuery.of(context).padding.top -
-                MediaQuery.of(context).padding.bottom -
-                200, // Account for top bar and bottom section
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              _buildAnimatedHeroSection(page),
-              const SizedBox(height: 40), // Reduced from 60
-              _buildAnimatedContentSection(page),
-              const SizedBox(height: 40), // Added spacing instead of Spacer
-            ],
-          ),
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight:
+              MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              MediaQuery.of(context).padding.bottom -
+              200, // Account for top bar and bottom section
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            _buildAnimatedHeroSection(page),
+            const SizedBox(height: 40), // Reduced from 60
+            _buildAnimatedContentSection(page),
+            const SizedBox(height: 40), // Added spacing instead of Spacer
+          ],
         ),
       ),
     );
@@ -554,17 +544,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 borderRadius: BorderRadius.circular(150),
                 boxShadow: [
                   BoxShadow(
-                    color: page.gradient[0].withOpacity(0.4),
+                    color: page.gradient[0].withValues(alpha: 0.4),
                     blurRadius: 50,
                     offset: const Offset(0, 25),
                   ),
                   BoxShadow(
-                    color: page.gradient[1].withOpacity(0.3),
+                    color: page.gradient[1].withValues(alpha: 0.3),
                     blurRadius: 80,
                     offset: const Offset(0, 40),
                   ),
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     blurRadius: 30,
                     offset: const Offset(0, -15),
                   ),
@@ -587,45 +577,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(
-                                    0.15 * (1 - animationValue),
+                                  color: Colors.white.withValues(
+                                    alpha: 0.15 * (1 - animationValue),
                                   ),
                                   width: 3,
                                 ),
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }),
-
-                  // Orbiting dots
-                  ...List.generate(6, (index) {
-                    return AnimatedBuilder(
-                      animation: _backgroundAnimation,
-                      builder: (context, child) {
-                        final angle =
-                            (_backgroundAnimation.value * 2 * math.pi) +
-                            (index * math.pi / 3);
-                        final radius = 120.0;
-                        final x = radius * math.cos(angle);
-                        final y = radius * math.sin(angle);
-
-                        return Transform.translate(
-                          offset: Offset(x, y),
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.6),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.white.withOpacity(0.3),
-                                  blurRadius: 4,
-                                ),
-                              ],
                             ),
                           ),
                         );
@@ -647,7 +604,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               page.image,
                               style: TextStyle(
                                 fontSize:
-                                    MediaQuery.of(context).size.width * 0.3,
+                                    MediaQuery.of(context).size.width * 0.25,
                               ),
                             ),
                           ),
@@ -689,7 +646,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           height: 1.2,
                           shadows: [
                             Shadow(
-                              color: page.particleColor.withOpacity(0.3),
+                              color: page.particleColor.withValues(alpha: 0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
@@ -718,14 +675,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.white.withOpacity(0.9),
-                            Colors.white.withOpacity(0.7),
+                            Colors.white.withValues(alpha: 0.9),
+                            Colors.white.withValues(alpha: 0.7),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(25),
                         boxShadow: [
                           BoxShadow(
-                            color: page.particleColor.withOpacity(0.2),
+                            color: page.particleColor.withValues(alpha: 0.2),
                             blurRadius: 15,
                             offset: const Offset(0, 5),
                           ),
@@ -808,13 +765,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             side: BorderSide(
                               color: _pages[_currentPage].particleColor
-                                  .withOpacity(0.3),
+                                  .withValues(alpha: 0.3),
                               width: 2,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            backgroundColor: Colors.white.withOpacity(0.9),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.9,
+                            ),
                           ),
                           child: Text(
                             'Skip for now',
@@ -840,7 +799,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             elevation: 12,
                             shadowColor: _pages[_currentPage].particleColor
-                                .withOpacity(0.4),
+                                .withValues(alpha: 0.4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -929,8 +888,10 @@ class EnhancedBackgroundPainter extends CustomPainter {
         wavePath.lineTo(x, y);
       }
 
-      paint.color = accentColors[wave % accentColors.length].withOpacity(0.1);
-      strokePaint.color = primaryColor.withOpacity(0.1);
+      paint.color = accentColors[wave % accentColors.length].withValues(
+        alpha: 0.1,
+      );
+      strokePaint.color = primaryColor.withValues(alpha: 0.1);
 
       canvas.drawPath(wavePath, strokePaint);
     }
@@ -948,8 +909,8 @@ class EnhancedBackgroundPainter extends CustomPainter {
 
       paint.shader = RadialGradient(
         colors: [
-          primaryColor.withOpacity(0.2),
-          accentColors[i % accentColors.length].withOpacity(0.1),
+          primaryColor.withValues(alpha: 0.2),
+          accentColors[i % accentColors.length].withValues(alpha: 0.1),
           Colors.transparent,
         ],
       ).createShader(Rect.fromCircle(center: Offset(x, y), radius: radius * 2));
@@ -986,7 +947,7 @@ class RipplePainter extends CustomPainter {
       final double radius = progress * size.width * 0.8;
       final double opacity = (1 - progress) * 0.3;
 
-      paint.color = color.withOpacity(opacity);
+      paint.color = color.withValues(alpha: opacity);
 
       if (radius > 0 && opacity > 0) {
         canvas.drawCircle(center, radius, paint);
