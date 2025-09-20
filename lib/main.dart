@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/constants/theme.dart';
-import 'package:skillsbridge/views/splash_screen.dart';
+import 'package:skillsbridge/views/bursary/bursary_screen.dart';
+import 'package:skillsbridge/views/learning/learning_screen.dart';
 
 void main() async {
   // Ensure Flutter is initialized
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SkillsBridge',
       theme: AppTheme.lightTheme,
-      home: SplashScreen(),
+      home: LearningHubScreen(),
     );
   }
 }

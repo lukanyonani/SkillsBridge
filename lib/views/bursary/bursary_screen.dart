@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/models/bursary_models.dart';
-import 'package:skillsbridge/viewmodels/bursary_screen_vm.dart';
+import 'package:skillsbridge/viewmodels/bursary/bursary_screen_vm.dart';
 import 'package:skillsbridge/views/bursary/bursary_detail_screen.dart'; // Import the provider
 
 class BursaryFinderScreen extends ConsumerStatefulWidget {

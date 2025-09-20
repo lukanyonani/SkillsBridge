@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skillsbridge/views/auth/login.dart';
+import 'package:skillsbridge/views/onboarding/getting_started_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -174,14 +175,35 @@ class _SignUpScreenState extends State<SignUpScreen>
         _isLoading = false;
       });
 
-      // Navigate to email verification
-      // Navigator.push(
-      //   context,
-      //   MaterialPageRoute(
-      //     builder: (context) =>
-      //         EmailVerificationScreen(email: _emailController.text),
-      //   ),
-      // );
+      // Navigate to questionnaire for new users
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const GettingStartedScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position:
+                          Tween<Offset>(
+                            begin: const Offset(1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeInOutCubic,
+                            ),
+                          ),
+                      child: child,
+                    ),
+                  );
+                },
+            transitionDuration: const Duration(milliseconds: 600),
+          ),
+        );
+      }
     } else if (!_agreeToTerms) {
       // Shake animation for terms checkbox
       _buttonController.forward().then((_) => _buttonController.reverse());

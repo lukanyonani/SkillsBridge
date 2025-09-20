@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillsbridge/constants/theme.dart';
 import 'package:skillsbridge/models/course_models.dart';
-import 'package:skillsbridge/viewmodels/home_screen_vm.dart';
-import 'package:skillsbridge/viewmodels/learning_screen_vm.dart';
+import 'package:skillsbridge/viewmodels/home/home_screen_vm.dart';
+import 'package:skillsbridge/viewmodels/learning/learning_screen_vm.dart';
 import 'package:skillsbridge/views/jobs/jobs_detail_screen.dart';
 import 'package:skillsbridge/views/profile/profile_screen.dart';
 import 'package:skillsbridge/views/learning/course_detail_screen.dart';
@@ -44,34 +44,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _initializeAnimations() {
-    // Fade animation for main content
+    // Fade animation for main content - faster
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut,
     );
 
-    // Slide animation for content
+    // Slide animation for content - faster
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 700),
       vsync: this,
     );
 
-    // Pulse animation for interactive elements
+    // Pulse animation for interactive elements - faster
     _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Background animation
+    // Background animation - faster
     _backgroundController = AnimationController(
-      duration: const Duration(milliseconds: 20000),
+      duration: const Duration(milliseconds: 15000),
       vsync: this,
     );
     _backgroundAnimation = CurvedAnimation(
@@ -100,9 +100,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (!_isInitialized) {
       ref.read(homeScreenProvider.notifier).initialize();
 
-      // Start animations
+      // Start animations - faster initialization
       _fadeController.forward();
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(milliseconds: 100));
       _slideController.forward();
 
       // Start continuous animations
@@ -137,6 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
+              cacheExtent: 1000, // Cache more content for smoother scrolling
               slivers: [
                 // Header with parallax effect
                 SliverToBoxAdapter(
@@ -459,50 +460,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GridView.count(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 28,
-        children: [
-          _buildStatCard(
-            icon: '📚',
-            value: homeState.userStats['coursesAvailable'].toString(),
-            label: 'Courses Available',
-            bgColor: const Color(0xFFDBEAFE),
-            iconColor: const Color(0xFF2563EB),
-            isLoading: homeState.isLoading,
-            onTap: () => homeNotifier.onStatCardTapped('courses'),
-          ),
-          _buildStatCard(
-            icon: '💼',
-            value: homeState.userStats['jobsAvailable'].toString(),
-            label: 'Job Opportunities',
-            bgColor: const Color(0xFFFEF3C7),
-            iconColor: const Color(0xFFF59E0B),
-            isLoading: homeState.isLoading,
-            onTap: () => homeNotifier.onStatCardTapped('jobs'),
-          ),
-          _buildStatCard(
-            icon: '💰',
-            value: homeState.userStats['bursariesAvailable'].toString(),
-            label: 'Bursary Opportunities',
-            bgColor: const Color(0xFFD1FAE5),
-            iconColor: const Color(0xFF10B981),
-            isLoading: homeState.isLoading,
-            onTap: () => homeNotifier.onStatCardTapped('bursaries'),
-          ),
-          _buildStatCard(
-            icon: '🏆',
-            value: homeState.userStats['applications'].toString(),
-            label: 'Achievements',
-            bgColor: const Color(0xFFFEE2E2),
-            iconColor: const Color(0xFFEF4444),
-            isLoading: false,
-            onTap: () => homeNotifier.onStatCardTapped('applications'),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 28,
+            childAspectRatio: constraints.maxWidth > 400 ? 1.2 : 1.0,
+            children: [
+              _buildStatCard(
+                icon: '📚',
+                value: homeState.userStats['coursesAvailable'].toString(),
+                label: 'Courses Available',
+                bgColor: const Color(0xFFDBEAFE),
+                iconColor: const Color(0xFF2563EB),
+                isLoading: homeState.isLoading,
+                onTap: () => homeNotifier.onStatCardTapped('courses'),
+              ),
+              _buildStatCard(
+                icon: '💼',
+                value: homeState.userStats['jobsAvailable'].toString(),
+                label: 'Job Opportunities',
+                bgColor: const Color(0xFFFEF3C7),
+                iconColor: const Color(0xFFF59E0B),
+                isLoading: homeState.isLoading,
+                onTap: () => homeNotifier.onStatCardTapped('jobs'),
+              ),
+              _buildStatCard(
+                icon: '💰',
+                value: homeState.userStats['bursariesAvailable'].toString(),
+                label: 'Bursary Opportunities',
+                bgColor: const Color(0xFFD1FAE5),
+                iconColor: const Color(0xFF10B981),
+                isLoading: homeState.isLoading,
+                onTap: () => homeNotifier.onStatCardTapped('bursaries'),
+              ),
+              _buildStatCard(
+                icon: '🏆',
+                value: homeState.userStats['applications'].toString(),
+                label: 'Achievements',
+                bgColor: const Color(0xFFFEE2E2),
+                iconColor: const Color(0xFFEF4444),
+                isLoading: false,
+                onTap: () => homeNotifier.onStatCardTapped('applications'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -519,6 +525,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 120, maxHeight: 150),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -534,6 +541,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 36,
@@ -556,37 +564,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
             const SizedBox(height: 8),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: isLoading
-                  ? Container(
-                      key: const ValueKey('loading'),
-                      width: 40,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(4),
+            Flexible(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: isLoading
+                    ? _buildSkeletonBox(width: 40, height: 20)
+                    : Text(
+                        value,
+                        key: ValueKey(value),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111827),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
-                    )
-                  : Text(
-                      value,
-                      key: ValueKey(value),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
+              ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Skeleton loading helper
+  Widget _buildSkeletonBox({required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonText({required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
@@ -599,23 +628,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Text(
-                'Continue Learning',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-            ],
+          const Text(
+            'Continue Learning',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+            ),
           ),
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: () => homeNotifier.onContinueCourseTapped(context),
+            onTap: homeState.isLoading
+                ? null
+                : () => homeNotifier.onContinueCourseTapped(context),
             child: Container(
+              constraints: const BoxConstraints(minHeight: 120, maxHeight: 200),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFFEFF6FF), Color(0xFFDBEAFE)],
@@ -626,87 +655,99 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 border: Border.all(color: const Color(0xFFDBEAFE)),
               ),
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            homeState.currentCourse['icon'],
-                            style: const TextStyle(fontSize: 24),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              child: homeState.isLoading
+                  ? _buildContinueLearningSkeleton()
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              homeState.currentCourse['title'],
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF111827),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  homeState.currentCourse['icon'],
+                                  style: const TextStyle(fontSize: 24),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${homeState.currentCourse['module']} • ${homeState.currentCourse['timeLeft']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: const Color(
-                                  0xFF4B5563,
-                                ).withValues(alpha: 0.8),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    homeState.currentCourse['title'],
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF111827),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${homeState.currentCourse['module']} • ${homeState.currentCourse['timeLeft']}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: const Color(
+                                        0xFF4B5563,
+                                      ).withValues(alpha: 0.8),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: homeState.currentCourse['progress'],
-                      minHeight: 8,
-                      backgroundColor: Colors.white,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF2563EB),
-                      ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: homeState.currentCourse['progress'],
+                            minHeight: 8,
+                            backgroundColor: Colors.white,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF2563EB),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '${homeState.getProgressPercentage()} Complete',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: const Color(
+                                    0xFF4B5563,
+                                  ).withValues(alpha: 0.8),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Text(
+                              'Resume →',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF2563EB),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${homeState.getProgressPercentage()} Complete',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: const Color(0xFF4B5563).withValues(alpha: 0.8),
-                        ),
-                      ),
-                      const Text(
-                        'Resume →',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF2563EB),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -714,10 +755,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  Widget _buildContinueLearningSkeleton() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            _buildSkeletonBox(width: 48, height: 48),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSkeletonText(width: double.infinity, height: 16),
+                  const SizedBox(height: 8),
+                  _buildSkeletonText(width: 120, height: 12),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _buildSkeletonText(width: double.infinity, height: 8),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSkeletonText(width: 80, height: 12),
+            _buildSkeletonText(width: 60, height: 12),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildPopularCourses(LearningHubViewModel viewModel) {
+    final homeNotifier = ref.read(homeScreenProvider.notifier);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 0, 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -727,7 +805,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  debugPrint('🎯 Courses View All button tapped');
+                  homeNotifier.onSeeAllTapped(context, 'courses');
+                },
                 child: const Text(
                   'View all →',
                   style: TextStyle(
@@ -743,7 +824,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           SizedBox(
             height: 235,
             child: viewModel.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildPopularCoursesSkeleton()
                 : ListView.builder(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
@@ -753,7 +834,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       return Container(
                         width: 200,
                         margin: const EdgeInsets.only(right: 12),
-                        child: _buildCourseCard(course),
+                        //child: _buildCourseCard(course),
                       );
                     },
                   ),
@@ -763,17 +844,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  Widget _buildPopularCoursesSkeleton() {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        return Container(
+          width: 200,
+          margin: const EdgeInsets.only(right: 12),
+          child: _buildCourseCardSkeleton(),
+        );
+      },
+    );
+  }
+
   Widget _buildCourseCard(Course course) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CourseDetailScreen(course: course),
-          ),
-        );
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => CourseDetailScreen(course: course),
+        //   ),
+        // );
       },
       child: Container(
+        constraints: const BoxConstraints(minHeight: 200, maxHeight: 235),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(color: const Color(0xFFE5E7EB)),
@@ -819,6 +916,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     const Text(
                       'SkillsBridge',
                       style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     const Row(
@@ -851,6 +950,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  Widget _buildCourseCardSkeleton() {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 200, maxHeight: 235),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSkeletonText(width: double.infinity, height: 16),
+                  const SizedBox(height: 8),
+                  _buildSkeletonText(width: 80, height: 12),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSkeletonText(width: 40, height: 12),
+                      _buildSkeletonText(width: 30, height: 12),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecommendedJobs(
     HomeScreenState homeState,
     HomeScreenNotifier homeNotifier,
@@ -875,7 +1022,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
                 TextButton(
                   onPressed: () {
-                    homeNotifier.onSeeAllTapped('jobs');
+                    debugPrint('🎯 Jobs View All button tapped');
+                    homeNotifier.onSeeAllTapped(context, 'jobs');
                   },
                   child: const Text(
                     'View all →',
@@ -893,7 +1041,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           SizedBox(
             height: 210,
             child: homeState.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildRecommendedJobsSkeleton()
                 : ListView.separated(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
@@ -912,6 +1060,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  Widget _buildRecommendedJobsSkeleton() {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(right: 20),
+      itemCount: 3,
+      separatorBuilder: (context, index) => const SizedBox(width: 12),
+      itemBuilder: (context, index) {
+        return _buildJobCardSkeleton();
+      },
+    );
+  }
+
   Widget _buildJobCard(
     Map<String, dynamic> job,
     HomeScreenNotifier homeNotifier,
@@ -921,6 +1082,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       onTap: () => _navigateToJobDetail(job, context),
       child: Container(
         width: 280,
+        constraints: const BoxConstraints(minHeight: 180, maxHeight: 210),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -929,6 +1091,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
@@ -977,14 +1140,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ],
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _buildJobTag(job['location']),
-                _buildJobTag(job['salary']),
-                _buildJobTag(job['workType']),
-              ],
+            Flexible(
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _buildJobTag(job['location']),
+                  _buildJobTag(job['salary']),
+                  _buildJobTag(job['workType']),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -1002,10 +1167,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildJobCardSkeleton() {
+    return Container(
+      width: 280,
+      constraints: const BoxConstraints(minHeight: 180, maxHeight: 210),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              _buildSkeletonBox(width: 40, height: 40),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSkeletonText(width: double.infinity, height: 16),
+                    const SizedBox(height: 8),
+                    _buildSkeletonText(width: 120, height: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _buildSkeletonText(width: 60, height: 24),
+              _buildSkeletonText(width: 50, height: 24),
+              _buildSkeletonText(width: 40, height: 24),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildSkeletonText(width: 80, height: 28),
+        ],
       ),
     );
   }
@@ -1017,45 +1231,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Text(
-                    'Upcoming Bursary Deadlines',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  if (homeState.hasUrgentDeadlines()) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
                       child: Text(
-                        '${homeState.getUrgentDeadlinesCount()}',
+                        'Upcoming Bursary Deadlines',
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: Color(0xFF1F2937),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                    if (homeState.hasUrgentDeadlines()) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${homeState.getUrgentDeadlinesCount()}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
+              const SizedBox(width: 8),
               TextButton(
-                onPressed: () => homeNotifier.onSeeAllTapped('deadlines'),
+                onPressed: () {
+                  debugPrint('🎯 Bursaries View All button tapped');
+                  homeNotifier.onSeeAllTapped(context, 'deadlines');
+                },
                 child: const Text(
                   'View all →',
                   style: TextStyle(
@@ -1068,16 +1293,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ],
           ),
           const SizedBox(height: 16),
-          Column(
-            children: homeState.upcomingDeadlines.map((deadline) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: _buildBursaryCard(deadline, homeNotifier, context),
-              );
-            }).toList(),
-          ),
+          homeState.isLoading
+              ? _buildUpcomingDeadlinesSkeleton()
+              : Column(
+                  children: homeState.upcomingDeadlines.map((deadline) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: _buildBursaryCard(deadline, homeNotifier, context),
+                    );
+                  }).toList(),
+                ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUpcomingDeadlinesSkeleton() {
+    return Column(
+      children: List.generate(2, (index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: _buildBursaryCardSkeleton(),
+        );
+      }),
     );
   }
 
@@ -1089,6 +1327,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return GestureDetector(
       onTap: () => homeNotifier.onBursaryCardTapped(context, bursary),
       child: Container(
+        constraints: const BoxConstraints(minHeight: 100, maxHeight: 140),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -1104,6 +1343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     bursary['title'],
@@ -1123,6 +1363,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF10B981),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -1149,6 +1391,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 ? FontWeight.w500
                                 : FontWeight.normal,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -1179,10 +1423,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBursaryCardSkeleton() {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 100, maxHeight: 140),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSkeletonText(width: double.infinity, height: 16),
+                const SizedBox(height: 8),
+                _buildSkeletonText(width: 100, height: 14),
+                const SizedBox(height: 8),
+                _buildSkeletonText(width: 120, height: 12),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildSkeletonText(width: 80, height: 36),
+        ],
       ),
     );
   }
@@ -1239,6 +1516,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildJobTag(String text) {
     return Container(
+      constraints: const BoxConstraints(maxWidth: 80, minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4F6),
@@ -1249,6 +1527,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563)),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
+        textAlign: TextAlign.center,
       ),
     );
   }

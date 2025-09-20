@@ -3,8 +3,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skillsbridge/data/courses_api.dart';
-import 'package:skillsbridge/models/course_models.dart';
+import 'package:skillsbridge/data/course.dart';
 
 // Provider for the API service
 final coursesApiServiceProvider = Provider<CoursesApiService>((ref) {
@@ -13,7 +12,7 @@ final coursesApiServiceProvider = Provider<CoursesApiService>((ref) {
 
 // Provider for mock mode state
 final useMockModeProvider = StateProvider<bool>((ref) {
-  return true; // Start with mock mode enabled for development
+  return false; // Start with real API mode
 });
 
 // Main ViewModel Provider
@@ -97,32 +96,59 @@ class LearningHubViewModel extends ChangeNotifier {
     if (_featuredCourses.isNotEmpty) {
       // Convert FeaturedCourse to Course for UI compatibility
       final featured = _featuredCourses.first;
-      return _courses.firstWhere(
-        (course) => course.id == featured.id,
-        orElse: () => Course(
-          id: featured.id,
-          title: featured.title,
-          description: featured.description,
-          instructor: featured.instructor,
-          thumbnailUrl: featured.thumbnailUrl,
-          level: featured.level,
-          category: featured.category,
-          rating: featured.rating,
-          reviewCount: 0,
-          pricing: CoursePricing(type: PricingType.free),
-          totalDuration: Duration.zero,
-          lessons: [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          enrollmentCount: featured.enrollmentCount,
-        ),
+      // Try to find the full course in our courses list
+      final fullCourse = _courses.cast<Course?>().firstWhere(
+        (course) => course?.id == featured.id,
+        orElse: () => null,
+      );
+
+      if (fullCourse != null) {
+        return fullCourse;
+      }
+
+      // Create a minimal Course object from FeaturedCourse data
+      return Course(
+        id: featured.id,
+        courseNumber: '',
+        title: featured.title,
+        department: '',
+        url: '',
+        videoGalleryUrl: '',
+        description: featured.description,
+        instructors: [
+          Instructor(name: featured.instructor, title: 'Instructor'),
+        ],
+        semester: '',
+        hasVideoLectures: true,
+        hasLectureNotes: false,
+        hasAssignments: false,
+        level: featured.level == 'graduate'
+            ? CourseLevel.graduate
+            : CourseLevel.undergraduate,
+        topics: [featured.category],
+        languages: ['English'],
+        license: '',
+        units: 0,
+        estimatedHours: 0,
+        thumbnailImage: featured.thumbnailUrl,
+        videoPlaylistId: '',
+        sampleVideos: [],
+        rating: featured.rating,
+        enrollmentCount: featured.enrollmentCount,
       );
     }
     return null;
   }
 
   List<Course> get popularCourses {
-    return _courses.take(10).toList();
+    // Sort by enrollment count or rating
+    final sorted = List<Course>.from(_courses);
+    sorted.sort((a, b) {
+      final aScore = (a.enrollmentCount ?? 0) + ((a.rating ?? 0) * 100).toInt();
+      final bScore = (b.enrollmentCount ?? 0) + ((b.rating ?? 0) * 100).toInt();
+      return bScore.compareTo(aScore);
+    });
+    return sorted.take(10).toList();
   }
 
   List<Course> get allCourses => _courses;
@@ -148,6 +174,13 @@ class LearningHubViewModel extends ChangeNotifier {
       await _searchCourses();
     } catch (e) {
       _setError('Failed to initialize data: $e');
+      // If API fails, try with mock mode
+      if (!CoursesApiService.isMockMode) {
+        debugPrint('API failed, switching to mock mode');
+        _ref.read(useMockModeProvider.notifier).state = true;
+        CoursesApiService.setMockMode(true);
+        await _initializeData(); // Retry with mock data
+      }
     } finally {
       _setLoading(false);
     }
@@ -200,23 +233,29 @@ class LearningHubViewModel extends ChangeNotifier {
           ? categories[_selectedCategoryIndex]
           : null;
 
-      final levelFilter = _activeFilters.firstWhere(
-        (filter) => [
-          'Beginner',
-          'Intermediate',
-          'Advanced',
-          'Undergraduate',
-          'Graduate',
-        ].contains(filter),
-        orElse: () => '',
-      );
+      // Map filter strings to API level format
+      String? levelFilter;
+      for (final filter in _activeFilters) {
+        if (filter == 'Beginner' ||
+            filter == 'Intermediate' ||
+            filter == 'Advanced') {
+          levelFilter = 'undergraduate'; // Map to undergraduate
+          break;
+        } else if (filter == 'Undergraduate') {
+          levelFilter = 'undergraduate';
+          break;
+        } else if (filter == 'Graduate') {
+          levelFilter = 'graduate';
+          break;
+        }
+      }
 
       final response = await _apiService.searchCourses(
         query: _searchQuery.isNotEmpty ? _searchQuery : null,
         topic: selectedCategory != null && selectedCategory != 'All'
             ? selectedCategory
             : null,
-        level: levelFilter.isNotEmpty ? levelFilter : null,
+        level: levelFilter,
         hasVideoLectures: true, // Always prefer courses with videos
         sort: 'relevance',
         page: searchPage,
@@ -235,11 +274,20 @@ class LearningHubViewModel extends ChangeNotifier {
       }
 
       debugPrint(
-        'Search completed: ${response.courses.length} courses loaded, page $_currentPage/${response.totalPages}',
+        'Search completed: ${response.courses.length} courses loaded, '
+        'page $_currentPage/${response.totalPages}',
       );
       _clearError();
     } catch (e) {
       _setError('Failed to search courses: $e');
+
+      // If search fails and we're not in mock mode, switch to mock
+      if (!CoursesApiService.isMockMode) {
+        debugPrint('Search failed, switching to mock mode');
+        _ref.read(useMockModeProvider.notifier).state = true;
+        CoursesApiService.setMockMode(true);
+        await _searchCourses(loadMore: loadMore, resetResults: resetResults);
+      }
     } finally {
       if (!loadMore) {
         _setLoading(false);
@@ -449,70 +497,8 @@ class LearningHubViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _apiService.dispose();
     debugPrint('Disposing Learning Hub ViewModel');
     super.dispose();
   }
 }
-
-/// Usage Example in main.dart or app initialization:
-/// 
-/// void main() {
-///   // Enable mock mode for development
-///   CoursesApiService.setMockMode(true);
-///   
-///   runApp(
-///     ProviderScope(
-///       child: MyApp(),
-///     ),
-///   );
-/// }
-/// 
-/// Usage in Widget:
-/// 
-/// class LearningScreen extends ConsumerWidget {
-///   @override
-///   Widget build(BuildContext context, WidgetRef ref) {
-///     final viewModel = ref.watch(learningHubViewModelProvider);
-///     
-///     if (viewModel.isLoading) {
-///       return CircularProgressIndicator();
-///     }
-///     
-///     return Column(
-///       children: [
-///         // Search functionality
-///         TextField(
-///           onChanged: viewModel.updateSearchQuery,
-///           decoration: InputDecoration(hintText: 'Search courses...'),
-///         ),
-///         
-///         // Categories
-///         ...viewModel.categories.asMap().entries.map((entry) {
-///           final index = entry.key;
-///           final category = entry.value;
-///           return FilterChip(
-///             label: Text(category),
-///             selected: viewModel.selectedCategoryIndex == index,
-///             onSelected: (_) => viewModel.selectCategory(index),
-///           );
-///         }),
-///         
-///         // Courses list
-///         ...viewModel.courses.map((course) => 
-///           ListTile(
-///             title: Text(course.title),
-///             subtitle: Text(course.instructor),
-///             trailing: Text('⭐ ${course.rating}'),
-///           ),
-///         ),
-///         
-///         // Load more button
-///         if (viewModel.hasMorePages)
-///           ElevatedButton(
-///             onPressed: viewModel.loadMoreCourses,
-///             child: Text('Load More'),
-///           ),
-///       ],
-///     );
-///   }
-/// }

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skillsbridge/models/course_models.dart';
-import 'package:skillsbridge/viewmodels/learning_screen_vm.dart';
-// Import the new course detail screen
+import 'package:skillsbridge/data/course.dart';
+import 'package:skillsbridge/viewmodels/learning/learning_screen_vm.dart';
 import '../../constants/theme.dart';
-import 'course_detail_screen.dart'; // Add this import
+import 'course_detail_screen.dart';
 
 class LearningHubScreen extends ConsumerStatefulWidget {
   const LearningHubScreen({super.key});
@@ -147,7 +146,9 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen> {
               return IconButton(
                 onPressed: () => viewModel.toggleMockMode(),
                 icon: Icon(
-                  viewModel.isUsingMockData ? Icons.bookmark : Icons.cloud,
+                  viewModel.isUsingMockData
+                      ? Icons.bookmark_border
+                      : Icons.bookmark_border,
                   color: Colors.white,
                 ),
                 tooltip: viewModel.isUsingMockData
@@ -340,9 +341,9 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildFeaturedStat('⭐', course.rating.toString()),
-                  const SizedBox(width: 16),
-                  _buildFeaturedStat('📚', course.category.value),
+                  // _buildFeaturedStat('⭐', course.rating.toString() ?? '4.0'),
+                  // const SizedBox(width: 16),
+                  _buildFeaturedStat('📚', course.category),
                   const SizedBox(width: 16),
                   _buildFeaturedStat('⏱️', '30 Videos'),
                 ],
@@ -507,7 +508,7 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            course.rating.toString(),
+                            '4.2',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF4B5563),
@@ -515,32 +516,12 @@ class _LearningHubScreenState extends ConsumerState<LearningHubScreen> {
                             ),
                           ),
                           Text(
-                            ' • ${course.level.value}',
+                            ' • ${course.level.name.toUpperCase()}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF4B5563),
                             ),
                           ),
-                          if (course.pricing.type == PricingType.free)
-                            Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'FREE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ],

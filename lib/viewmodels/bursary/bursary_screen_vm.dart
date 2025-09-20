@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' hide Provider;
 import 'package:skillsbridge/data/bursary_api.dart';
-import '../models/bursary_models.dart';
+import '../../models/bursary_models.dart';
 
 // State class that holds all the data
 class BursaryFinderState {

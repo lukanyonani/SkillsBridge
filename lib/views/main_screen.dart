@@ -5,6 +5,7 @@ import 'package:skillsbridge/views/counsellor/councillor_screen.dart';
 import 'package:skillsbridge/views/home/home_screen.dart';
 import 'package:skillsbridge/views/jobs/jobs_screen.dart';
 import 'package:skillsbridge/views/learning/learning_screen.dart';
+import 'package:skillsbridge/utils/navigation_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -13,7 +14,8 @@ class MainNavigationScreen extends StatefulWidget {
   _MainNavigationScreenState createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with TabSwitcher {
   int _currentIndex = 0;
 
   // Create instances of your screens
@@ -28,6 +30,36 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       JobPortalScreen(),
       BursaryFinderScreen(), // Your existing bursary screen
     ];
+
+    // Register this state with the navigation service
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NavigationService.registerMainNavigation(this);
+    });
+  }
+
+  @override
+  void dispose() {
+    NavigationService.unregisterMainNavigation();
+    super.dispose();
+  }
+
+  @override
+  void switchToTab(int tabIndex) {
+    debugPrint(
+      '🔄 MainNavigationScreen: switchToTab called with index $tabIndex',
+    );
+    if (tabIndex >= 0 && tabIndex < _screens.length) {
+      setState(() {
+        _currentIndex = tabIndex;
+      });
+      debugPrint(
+        '✅ MainNavigationScreen: Successfully switched to tab $tabIndex',
+      );
+    } else {
+      debugPrint(
+        '❌ MainNavigationScreen: Invalid tab index $tabIndex (valid range: 0-${_screens.length - 1})',
+      );
+    }
   }
 
   @override

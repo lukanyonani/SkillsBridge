@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:skillsbridge/models/bursary_models.dart';
-import 'package:skillsbridge/viewmodels/bursary_screen_vm.dart';
+import 'package:skillsbridge/viewmodels/bursary/bursary_screen_vm.dart';
 
 class BursaryDetailPage extends ConsumerStatefulWidget {
   final Bursary bursary;

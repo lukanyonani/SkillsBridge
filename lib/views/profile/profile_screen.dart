@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skillsbridge/views/profile/achievements_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -301,7 +302,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AchievementsDetailScreen(),
+                    ),
+                  );
+                },
                 child: Text(
                   'See All',
                   style: TextStyle(

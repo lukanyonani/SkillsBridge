@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:skillsbridge/viewmodels/jobs_screen_vm.dart';
+import 'package:skillsbridge/viewmodels/jobs/jobs_screen_vm.dart';
 
 class JobDetailPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> job;

@@ -4,9 +4,9 @@ import 'package:skillsbridge/data/bursary_api.dart';
 import 'package:skillsbridge/data/jobs_api.dart';
 import 'package:skillsbridge/views/jobs/jobs_detail_screen.dart';
 import 'package:skillsbridge/views/bursary/bursary_detail_screen.dart';
-import 'package:skillsbridge/views/learning/course_detail_screen.dart';
 import 'package:skillsbridge/models/bursary_models.dart' as bursary_models;
 import 'package:skillsbridge/models/course_models.dart';
+import 'package:skillsbridge/utils/navigation_service.dart';
 
 // State class that holds all the home screen data
 class HomeScreenState {
@@ -243,31 +243,31 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
   void onContinueCourseTapped(BuildContext context) {
     debugPrint('Continue course tapped: ${state.currentCourse['title']}');
     // Create a sample course for navigation
-    final sampleCourse = Course(
-      id: '1',
-      title: state.currentCourse['title'],
-      description:
-          'Continue your learning journey with this comprehensive course.',
-      instructor: 'SkillsBridge Team',
-      thumbnailUrl: 'https://example.com/thumbnail.jpg',
-      rating: 4.5,
-      enrollmentCount: 1250,
-      level: CourseLevel.beginner,
-      category: CourseCategory.programming,
-      pricing: CoursePricing(type: PricingType.free, amount: 0),
-      totalDuration: const Duration(hours: 30),
-      lessons: const [],
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-      reviewCount: 150,
-    );
+    // final sampleCourse = Course(
+    //   id: '1',
+    //   title: state.currentCourse['title'],
+    //   description:
+    //       'Continue your learning journey with this comprehensive course.',
+    //   instructor: 'SkillsBridge Team',
+    //   thumbnailUrl: 'https://example.com/thumbnail.jpg',
+    //   rating: 4.5,
+    //   enrollmentCount: 1250,
+    //   level: CourseLevel.beginner,
+    //   category: CourseCategory.programming,
+    //   pricing: CoursePricing(type: PricingType.free, amount: 0),
+    //   totalDuration: const Duration(hours: 30),
+    //   lessons: const [],
+    //   createdAt: DateTime.now(),
+    //   updatedAt: DateTime.now(),
+    //   reviewCount: 150,
+    // );
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CourseDetailScreen(course: sampleCourse),
-      ),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => CourseDetailScreen(course: sampleCourse),
+    //   ),
+    // );
   }
 
   void onJobCardTapped(BuildContext context, Map<String, dynamic> job) {
@@ -388,9 +388,22 @@ class HomeScreenNotifier extends StateNotifier<HomeScreenState> {
     onBursaryCardTapped(context, bursary);
   }
 
-  void onSeeAllTapped(String section) {
+  void onSeeAllTapped(BuildContext context, String section) {
     debugPrint('See all tapped for: $section');
     // Navigate to respective section's full view
+    switch (section) {
+      case 'jobs':
+        NavigationService.navigateToJobs(context);
+        break;
+      case 'courses':
+        NavigationService.navigateToLearning(context);
+        break;
+      case 'deadlines':
+        NavigationService.navigateToBursaries(context);
+        break;
+      default:
+        debugPrint('Unknown section: $section');
+    }
   }
 
   // Helper method to parse amount from various formats

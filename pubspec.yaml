@@ -46,6 +46,7 @@ dependencies:
   connectivity_plus: ^6.0.3
   flutter_riverpod: ^2.5.1
   json_annotation: ^4.8.1 
+  logger: ^2.6.1
 
 
 dev_dependencies:

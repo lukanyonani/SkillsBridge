@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:skillsbridge/views/auth/forgot_password_screen.dart';
 import 'package:skillsbridge/views/auth/sign_up.dart';
 import 'package:skillsbridge/views/main_screen.dart';
+import 'package:skillsbridge/views/onboarding/getting_started_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,13 +23,11 @@ class _LoginScreenState extends State<LoginScreen>
 
   // Animation controllers
   late AnimationController _fadeController;
-  late AnimationController _slideController;
   late AnimationController _logoController;
   late AnimationController _buttonController;
 
   // Animations
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
   late Animation<double> _logoScaleAnimation;
   late Animation<double> _buttonScaleAnimation;
 
@@ -55,16 +55,6 @@ class _LoginScreenState extends State<LoginScreen>
       parent: _fadeController,
       curve: Curves.easeInOut,
     );
-
-    // Slide animation for form elements
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
-        );
 
     // Logo scale animation
     _logoController = AnimationController(
@@ -105,9 +95,6 @@ class _LoginScreenState extends State<LoginScreen>
 
     await Future.delayed(const Duration(milliseconds: 400));
     _fadeController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 200));
-    _slideController.forward();
   }
 
   @override
@@ -117,7 +104,6 @@ class _LoginScreenState extends State<LoginScreen>
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     _fadeController.dispose();
-    _slideController.dispose();
     _logoController.dispose();
     _buttonController.dispose();
     super.dispose();
@@ -152,32 +138,42 @@ class _LoginScreenState extends State<LoginScreen>
         _isLoading = false;
       });
 
-      // Navigate to main screen with animation
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const MainNavigationScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position:
-                    Tween<Offset>(
-                      begin: const Offset(1.0, 0.0),
-                      end: Offset.zero,
-                    ).animate(
-                      CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeInOutCubic,
-                      ),
+      // Check if questionnaire has been completed
+      final prefs = await SharedPreferences.getInstance();
+      final questionnaireCompleted =
+          prefs.getBool('questionnaire_completed') ?? false;
+
+      // Navigate based on questionnaire completion status
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                questionnaireCompleted
+                ? const MainNavigationScreen()
+                : const GettingStartedScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position:
+                          Tween<Offset>(
+                            begin: const Offset(1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeInOutCubic,
+                            ),
+                          ),
+                      child: child,
                     ),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 600),
-        ),
-      );
+                  );
+                },
+            transitionDuration: const Duration(milliseconds: 600),
+          ),
+        );
+      }
     }
   }
 
@@ -227,45 +223,33 @@ class _LoginScreenState extends State<LoginScreen>
         ),
 
         const SizedBox(height: 24),
-
-        // Animated title and subtitle
         FadeTransition(
           opacity: _fadeAnimation,
-          child: SlideTransition(
-            position:
-                Tween<Offset>(
-                  begin: const Offset(0, 0.2),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: _slideController,
-                    curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-                  ),
+          child: Column(
+            children: [
+              const Text(
+                'Welcome Back',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827),
+                  height: 1.2,
                 ),
-            child: Column(
-              children: [
-                const Text(
-                  'Welcome Back',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
-                    height: 1.2,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Sign in to continue your journey',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF6B7280),
+                  height: 1.4,
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Sign in to continue your journey',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF6B7280),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+
+        // Animated title and subtitle
       ],
     );
   }
@@ -273,27 +257,18 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildAnimatedLoginForm() {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-            .animate(
-              CurvedAnimation(
-                parent: _slideController,
-                curve: const Interval(0.2, 0.7, curve: Curves.easeOut),
-              ),
-            ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _buildAnimatedEmailField(),
-              const SizedBox(height: 20),
-              _buildAnimatedPasswordField(),
-              const SizedBox(height: 16),
-              _buildAnimatedRememberAndForgot(),
-              const SizedBox(height: 32),
-              _buildAnimatedLoginButton(),
-            ],
-          ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            _buildAnimatedEmailField(),
+            const SizedBox(height: 20),
+            _buildAnimatedPasswordField(),
+            const SizedBox(height: 16),
+            _buildAnimatedRememberAndForgot(),
+            const SizedBox(height: 32),
+            _buildAnimatedLoginButton(),
+          ],
         ),
       ),
     );
@@ -585,55 +560,42 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildAnimatedSocialLogin() {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
-            .animate(
-              CurvedAnimation(
-                parent: _slideController,
-                curve: const Interval(0.4, 0.9, curve: Curves.easeOut),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Container(height: 1, color: const Color(0xFFE5E7EB)),
               ),
-            ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Or continue with',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Or continue with',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-                  ),
+              ),
+              Expanded(
+                child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _buildAnimatedSocialButton(
+                  'Google',
+                  Icons.g_mobiledata,
+                  () {},
                 ),
-                Expanded(
-                  child: Container(height: 1, color: const Color(0xFFE5E7EB)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAnimatedSocialButton(
-                    'Google',
-                    Icons.g_mobiledata,
-                    () {},
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildAnimatedSocialButton(
-                    'Apple',
-                    Icons.apple,
-                    () {},
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildAnimatedSocialButton('Apple', Icons.apple, () {}),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -673,58 +635,49 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildAnimatedSignUpPrompt() {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
-            .animate(
-              CurvedAnimation(
-                parent: _slideController,
-                curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
-              ),
-            ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Don't have an account? ",
-              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const SignUpScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return SlideTransition(
-                            position:
-                                Tween<Offset>(
-                                  begin: const Offset(1.0, 0.0),
-                                  end: Offset.zero,
-                                ).animate(
-                                  CurvedAnimation(
-                                    parent: animation,
-                                    curve: Curves.easeInOutCubic,
-                                  ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            "Don't have an account? ",
+            style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+          ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const SignUpScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                        return SlideTransition(
+                          position:
+                              Tween<Offset>(
+                                begin: const Offset(1.0, 0.0),
+                                end: Offset.zero,
+                              ).animate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeInOutCubic,
                                 ),
-                            child: child,
-                          );
-                        },
-                  ),
-                );
-              },
-              child: const Text(
-                'Sign Up',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF2563EB),
-                  fontWeight: FontWeight.w600,
+                              ),
+                          child: child,
+                        );
+                      },
                 ),
+              );
+            },
+            child: const Text(
+              'Sign Up',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF2563EB),
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
